@@ -25,6 +25,7 @@ export class Player {
             case 'dicemaster': return "骰子大师";
             case 'knight': return "骑士";
             case 'mage': return "光暗法师";
+            case 'archer': return "风行弓箭手";
             case 'random': return "命运浪人";
             default: return "冒险者";
         }
@@ -48,6 +49,10 @@ export class Player {
             case 'mage':
                 this.maxHp = 25;
                 this.attack = 2;
+                break;
+            case 'archer':
+                this.maxHp = 18;
+                this.attack = 7;
                 break;
             case 'random':
             default:
@@ -179,7 +184,7 @@ export class Summon {
         this.currentRoll = null;
     }
 
-    calculateClashPoints(coinResult, maxDiceValue, atkModifier = 0) {
+    calculateClashPoints(coinResult, maxDiceValue, atkModifier = 0, isArcher = false) {
         let baseAtk = this.attack + atkModifier;
         let damage = coinResult === 'heads' ? (baseAtk + maxDiceValue) : (baseAtk - maxDiceValue);
         
@@ -197,6 +202,11 @@ export class Summon {
             finalDamage = Math.floor(damage / 2);
             this.halvedDamageNextTurn = false;
             suffix = " (上回合负伤减半)";
+        }
+        
+        if (isArcher && baseAtk > 5) {
+            finalDamage += 1;
+            suffix += " (🎯 弓箭手协同 +1)";
         }
         
         this.currentRoll = {

@@ -478,7 +478,7 @@ function setupCombatListeners() {
                 sDiceValues.push(sRoll);
             }
             const sMaxVal = Math.max(...sDiceValues);
-            s.calculateClashPoints(sCoin, sMaxVal, activeEnvironmentalEvent ? (activeEnvironmentalEvent.summonAtkModifier || 0) : 0);
+            s.calculateClashPoints(sCoin, sMaxVal, activeEnvironmentalEvent ? (activeEnvironmentalEvent.summonAtkModifier || 0) : 0, player.type === 'archer');
         });
 
         // Run animations
