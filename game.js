@@ -71,6 +71,13 @@ const COMBAT_EVENTS = [
         icon: '⭐',
         luckyStarEffect: true,
         desc: '群星闪烁：好运眷顾，本场战斗英雄投掷硬币正面几率额外提升 15%！'
+    },
+    {
+        id: 'boss_suppression',
+        name: 'Boss压制',
+        icon: '💀',
+        bossSuppression: true,
+        desc: 'Boss散发出强大的威压！英雄攻击 -5，最大生命上限 -10，召唤物进入消极状态（每回合 20% 几率不攻击，每回合末损失 1% 生命值）。'
     }
 ];
 
@@ -81,6 +88,7 @@ let combatState = {
     hasEnemyRolled: false,
     coinResult: null,
     appliedMaxHpDebuff: 0, // Track blizzard HP penalty
+    appliedAtkDebuff: 0,   // Track boss suppression attack penalty
     diceValues: null,
     maxDiceValue: 0,
     turnDamageCalculated: null,
@@ -246,10 +254,15 @@ function startCombatForLevel(level) {
     player.level = level;
     currentEnemies = generateMonstersForLevel(level);
     
-    // If no environmental event was preset by mystery lane, roll one!
-    if (!activeEnvironmentalEvent) {
-        const randomIndex = Math.floor(Math.random() * COMBAT_EVENTS.length);
-        activeEnvironmentalEvent = { ...COMBAT_EVENTS[randomIndex] };
+    // Boss levels always get the boss suppression event (overrides random weather)
+    const isBossLevel = level % 6 === 0;
+    if (isBossLevel) {
+        activeEnvironmentalEvent = { ...COMBAT_EVENTS.find(e => e.id === 'boss_suppression') };
+    } else if (!activeEnvironmentalEvent) {
+        // If no environmental event was preset by mystery lane, roll one (excluding boss_suppression)
+        const normalEvents = COMBAT_EVENTS.filter(e => e.id !== 'boss_suppression');
+        const randomIndex = Math.floor(Math.random() * normalEvents.length);
+        activeEnvironmentalEvent = { ...normalEvents[randomIndex] };
     }
     
     // Trigger toast notification for the special event
@@ -371,6 +384,7 @@ function startCombatForLevel(level) {
     combatState.headsStreak = 0;
     combatState.tailsStreak = 0;
     combatState.appliedMaxHpDebuff = 0;
+    combatState.appliedAtkDebuff = 0;
     // Reset temporary attack bonuses from Burn
     player.tempAttackBonus = 0;
     combatState.nextTurnAtkBonus = 0;
@@ -380,6 +394,19 @@ function startCombatForLevel(level) {
         const debuff = activeEnvironmentalEvent.tempMaxHpDebuff;
         combatState.appliedMaxHpDebuff = debuff;
         player.maxHp = Math.max(10, player.maxHp - debuff);
+        if (player.currentHp > player.maxHp) {
+            player.currentHp = player.maxHp;
+        }
+    }
+    
+    // Apply boss suppression debuffs: attack -5, maxHp -10
+    if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'boss_suppression') {
+        const atkDebuff = 5;
+        const hpDebuff = 10;
+        combatState.appliedAtkDebuff = atkDebuff;
+        player.attack = Math.max(0, player.attack - atkDebuff);
+        player.maxHp = Math.max(1, player.maxHp - hpDebuff);
+        combatState.appliedMaxHpDebuff += hpDebuff;
         if (player.currentHp > player.maxHp) {
             player.currentHp = player.maxHp;
         }
@@ -422,6 +449,9 @@ function startCombatForLevel(level) {
             addCombatLog(`🌫️ 迷雾重重：双方拼点结算时有 30% 几率随机增加或减少 1 点！`, 'info');
         } else if (activeEnvironmentalEvent.id === 'lucky_star') {
             addCombatLog(`⭐ 幸运星降临：本场战斗英雄投掷硬币正面率提升 15%！`, 'info');
+        } else if (activeEnvironmentalEvent.id === 'boss_suppression') {
+            addCombatLog(`💀 【Boss压制】强大的威压笼罩战场！你的攻击力 -5，最大生命值上限 -10！`, 'damage-player');
+            addCombatLog(`💀 【Boss压制】召唤物进入消极状态！每回合有 20% 几率拒绝行动，且每回合末损失 1% 生命值！`, 'damage-player');
         }
     }
     
@@ -930,6 +960,14 @@ function setupCombatListeners() {
             player.summons.forEach(s => {
                 if (s.currentHp <= 0 || !hasAliveEnemies()) return;
 
+                // Boss Suppression: 20% chance summon refuses to act (消极状态)
+                if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'boss_suppression') {
+                    if (Math.random() < 0.2) {
+                        addCombatLog(`😔 【消极状态】${s.name} 因强大威压而畏缩，本回合拒绝行动！`, 'damage-player');
+                        return;
+                    }
+                }
+
                 const summonPoints = s.currentRoll.clashPoints;
 
                 if (s.type === 'phoenix') {
@@ -1059,6 +1097,16 @@ function setupCombatListeners() {
                 });
             }
 
+            // Boss Suppression: summons lose 1% max HP per turn (min 1 HP remaining)
+            if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'boss_suppression') {
+                player.summons.forEach(s => {
+                    if (s.currentHp <= 0) return;
+                    const drain = Math.max(1, Math.floor(s.maxHp * 0.01));
+                    s.currentHp = Math.max(1, s.currentHp - drain);
+                    addCombatLog(`💀 【消极状态】${s.name} 因威压持续消耗了 ${drain} 点生命值（当前: ${s.currentHp} HP）。`, 'damage-player');
+                });
+            }
+
             // Reset round states
             const hasBurn = player.mechanisms.find(m => m.id === 'mech_burn');
             const freezeMech = player.mechanisms.find(m => m.id === 'mech_freeze');
@@ -1120,10 +1168,21 @@ function triggerVictory() {
         addCombatLog(`👋 战斗结束，小镇卫兵与猎手离开了队伍。`, 'info');
     }
     
-    // Restore player's maxHp from blizzard debuff
+    // Restore player's maxHp from blizzard / boss suppression debuff
     if (combatState.appliedMaxHpDebuff > 0) {
         player.maxHp += combatState.appliedMaxHpDebuff;
-        addCombatLog(`❄️ 【暴风雪】已离去：最大生命值上限恢复了 ${combatState.appliedMaxHpDebuff} 点！`, 'info');
+        if (combatState.appliedAtkDebuff > 0) {
+            addCombatLog(`💀 【Boss压制】威压解除：最大生命值上限恢复了 ${combatState.appliedMaxHpDebuff} 点！`, 'info');
+        } else {
+            addCombatLog(`❄️ 【暴风雪】已离去：最大生命值上限恢复了 ${combatState.appliedMaxHpDebuff} 点！`, 'info');
+        }
+    }
+
+    // Restore player's attack from boss suppression debuff
+    if (combatState.appliedAtkDebuff > 0) {
+        player.attack += combatState.appliedAtkDebuff;
+        addCombatLog(`💀 【Boss压制】威压解除：攻击力恢复了 ${combatState.appliedAtkDebuff} 点！`, 'info');
+        combatState.appliedAtkDebuff = 0;
     }
 
     // Restore player's maxHp from 假面大师 sacrifice
@@ -1379,6 +1438,8 @@ function setupGameOverListeners() {
         currentLocation = 'flag';
         activeEnvironmentalEvent = null;
         combatState.sacrificedMaxHpTotal = 0;
+        combatState.appliedAtkDebuff = 0;
+        combatState.appliedMaxHpDebuff = 0;
         
         showScreen('select-screen');
         setupDifficultySelector(); // Refresh dropdown options to reflect newly unlocked states
