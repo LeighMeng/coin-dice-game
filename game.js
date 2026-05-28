@@ -10,6 +10,8 @@ let player = null;
 let currentEnemies = [];
 let completedLevels = new Set();
 let currentLocation = 'flag'; // 'flag', 'level_1', 'fork_1', 'level_2', ...
+let maxUnlockedDifficulty = localStorage.getItem('maxUnlockedDifficulty') || 'easy';
+let selectedDifficulty = 'easy';
 let combatState = {
     turn: 1,
     hasRolled: false,
@@ -24,7 +26,8 @@ let combatState = {
     doubleGold: false,
     mysteryAmbush: false,
     headsStreak: 0,
-    tailsStreak: 0
+    tailsStreak: 0,
+    nextTurnAtkBonus: 0 // Track Burn mechanism stacks
 };
 
 // 1. Initial Setup and Event Listeners
@@ -36,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGameOverListeners();
     setupAudioControls();
     setupGlobalClickAudio();
+    setupDifficultySelector();
 });
 
 function triggerAudioInit() {
@@ -86,6 +90,45 @@ function setupGlobalClickAudio() {
     });
 }
 
+function setupDifficultySelector() {
+    const select = getEl('difficulty-select');
+    maxUnlockedDifficulty = localStorage.getItem('maxUnlockedDifficulty') || 'easy';
+    
+    const difficulties = ['easy', 'normal', 'hard', 'hell'];
+    const maxIndex = difficulties.indexOf(maxUnlockedDifficulty);
+    
+    if (maxIndex >= 1) {
+        getEl('opt-normal').removeAttribute('disabled');
+        getEl('opt-normal').textContent = '普通模式 (敌生命x1.2, 攻击x1.1) - 已解锁';
+    }
+    if (maxIndex >= 2) {
+        getEl('opt-hard').removeAttribute('disabled');
+        getEl('opt-hard').textContent = '困难模式 (敌生命x1.7, 攻击x1.4, 机制+1) - 已解锁';
+    }
+    if (maxIndex >= 3) {
+        getEl('opt-hell').removeAttribute('disabled');
+        getEl('opt-hell').textContent = '地狱模式 (敌生命x2.5, 攻击x2.0, 机制+2, 骰上限+1) - 已解锁';
+    }
+    
+    // Set default selected to max unlocked difficulty
+    select.value = maxUnlockedDifficulty;
+    selectedDifficulty = maxUnlockedDifficulty;
+    
+    select.addEventListener('change', (e) => {
+        selectedDifficulty = e.target.value;
+    });
+}
+
+function getDifficultyName(diff) {
+    switch (diff) {
+        case 'easy': return '简单';
+        case 'normal': return '普通';
+        case 'hard': return '困难';
+        case 'hell': return '地狱';
+        default: return '简单';
+    }
+}
+
 // Screen Switching Router
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -120,6 +163,7 @@ function setupCharacterSelection() {
         
         const nameInput = getEl('player-name-input').value.trim();
         player = new Player(selectedChar, nameInput);
+        player.difficulty = selectedDifficulty;
         
         // Initial Game Setup
         completedLevels = new Set();
@@ -139,6 +183,46 @@ function startCombatForLevel(level) {
     player.level = level;
     currentEnemies = generateMonstersForLevel(level);
     
+    // Scale and enhance monster stats based on selectedDifficulty
+    currentEnemies.forEach(enemy => {
+        if (selectedDifficulty === 'easy') {
+            enemy.maxHp = Math.max(5, Math.floor(enemy.maxHp * 0.8));
+            enemy.currentHp = enemy.maxHp;
+            enemy.attack = Math.max(1, Math.floor(enemy.attack * 0.8));
+        } else if (selectedDifficulty === 'normal') {
+            enemy.maxHp = Math.floor(enemy.maxHp * 1.2);
+            enemy.currentHp = enemy.maxHp;
+            enemy.attack = Math.max(1, Math.floor(enemy.attack * 1.1));
+        } else if (selectedDifficulty === 'hard') {
+            enemy.maxHp = Math.floor(enemy.maxHp * 1.7);
+            enemy.currentHp = enemy.maxHp;
+            enemy.attack = Math.max(2, Math.floor(enemy.attack * 1.4));
+            
+            // Extra +1 random mechanism card
+            addRandomMechanismsToMonster(enemy, 1, level % 6 === 0);
+            
+            // Elite/Boss gets +1 extra die count
+            if (enemy.isBoss || level % 3 === 0) {
+                enemy.diceCount += 1;
+            }
+        } else if (selectedDifficulty === 'hell') {
+            enemy.maxHp = Math.floor(enemy.maxHp * 2.5);
+            enemy.currentHp = enemy.maxHp;
+            enemy.attack = Math.max(2, Math.floor(enemy.attack * 2.0));
+            
+            // Extra +2 random mechanism cards
+            addRandomMechanismsToMonster(enemy, 2, level % 6 === 0);
+            
+            // All monsters get +1 max dice bounds
+            enemy.diceMax += 1;
+            
+            // Elite/Boss gets +1 extra die count
+            if (enemy.isBoss || level % 3 === 0) {
+                enemy.diceCount += 1;
+            }
+        }
+    });
+
     // Reset Combat States
     combatState.turn = 1;
     combatState.hasRolled = false;
@@ -152,6 +236,10 @@ function startCombatForLevel(level) {
     combatState.isPlayerTurn = true;
     combatState.headsStreak = 0;
     combatState.tailsStreak = 0;
+    // Reset temporary attack bonuses from Burn
+    player.tempAttackBonus = 0;
+    combatState.nextTurnAtkBonus = 0;
+    
     // Don't overwrite doubleGold if it was set externally (e.g. by Mystery Ambush)
     if (!combatState.mysteryAmbush) {
         combatState.doubleGold = false;
@@ -170,7 +258,7 @@ function startCombatForLevel(level) {
         getEl('mage-toggle-container').classList.add('hidden');
     }
 
-    addCombatLog(`⚔️ 战斗开始！你进入了第 ${level} 关。`, 'important');
+    addCombatLog(`⚔️ 战斗开始！你进入了第 ${level} 关 (${getDifficultyName(selectedDifficulty)}难度)。`, 'important');
     if (currentEnemies[0].isBoss) {
         addCombatLog(`⚠️ 领主警告：【${currentEnemies[0].name}】降临！它带有 ${currentEnemies[0].mechanisms.length} 个特殊机制！`, 'damage-player');
     } else {
@@ -182,6 +270,33 @@ function startCombatForLevel(level) {
     });
 
     updateCombatUI();
+}
+
+function addRandomMechanismsToMonster(monster, count, isBossLevel) {
+    const normalMechanisms = [
+        { id: 'thorns', name: '荆棘', desc: '反弹25%受到的伤害给攻击者。' },
+        { id: 'regen', name: '再生', desc: '每回合结束时恢复5%的最大生命值。' },
+        { id: 'dodge', name: '闪避', desc: '有20%的几率完全闪避该次攻击。' },
+        { id: 'vampire', name: '吸血', desc: '攻击造成伤害的50%转化为自身生命值。' },
+        { id: 'weakness', name: '虚弱', desc: '攻击时有30%几率降低玩家1点基础攻击，持续1回合。' }
+    ];
+    const bossMechanisms = [
+        ...normalMechanisms,
+        { id: 'rage', name: '狂暴', desc: '每损失1%生命值，攻击力提升1.5%。' },
+        { id: 'shield', name: '护盾', desc: '每回合有40%几率获得自身最大HP 10%的护盾。' },
+        { id: 'tails_curse', name: '反面诅咒', desc: '诅咒玩家，使玩家投掷硬币为反面的概率提升20%（如果未满）。' },
+        { id: 'double_strike', name: '连击', desc: '每回合进行两次攻击。' },
+        { id: 'blockade', name: '骰子限制', desc: '降低玩家骰子最大值1点。' }
+    ];
+    
+    const pool = isBossLevel ? bossMechanisms : normalMechanisms;
+    
+    for (let i = 0; i < count; i++) {
+        const available = pool.filter(p => !monster.mechanisms.some(m => m.id === p.id));
+        if (available.length === 0) break;
+        const picked = available[Math.floor(Math.random() * available.length)];
+        monster.mechanisms.push(picked);
+    }
 }
 
 function updateCombatUI() {
@@ -433,51 +548,120 @@ function setupCombatListeners() {
 
         const playerPoints = combatState.turnDamageCalculated.damage;
 
+        let hitsDealt = 0;
+        const hasBurn = player.mechanisms.find(m => m.id === 'mech_burn');
+        const hasSweeping = player.mechanisms.find(m => m.id === 'mech_sweeping_blade');
+        const freezeMech = player.mechanisms.find(m => m.id === 'mech_freeze');
+
         // 1. Player Clashes with ALL alive monsters
-        currentEnemies.forEach(enemy => {
+        currentEnemies.forEach((enemy, idx) => {
             if (enemy.currentHp <= 0) return;
 
             const enemyPoints = enemy.currentRoll.clashPoints;
-            addCombatLog(`⚔️ 【对比】你 (⚔️${playerPoints}点) vs ${enemy.name} (⚔️${enemyPoints}点)`);
+            const isPrimary = (idx === combatState.activeTargetIndex);
+            
+            if (isPrimary) {
+                addCombatLog(`⚔️ 【主决斗】你 (⚔️${playerPoints}点) vs ${enemy.name} (⚔️${enemyPoints}点)`);
+                if (playerPoints > enemyPoints) {
+                    // Player wins!
+                    const dmgResult = enemy.takeDamage(playerPoints);
+                    if (dmgResult.dodged) {
+                        addCombatLog(` 💨 ${enemy.name} 闪避了你的攻击！`, 'info');
+                    } else {
+                        addCombatLog(` 💥 拼点获胜！你对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
+                        hitsDealt++;
+                        
+                        // Check Freeze mechanism
+                        if (freezeMech && freezeMech.cooldown === 0 && Math.random() < 0.35) {
+                            enemy.frozenTurns = 1;
+                            freezeMech.cooldown = 4; // Set 3 turns cooldown (+1 decay at end of turn)
+                            addCombatLog(`❄️ 【寒冰之咬】触发！${enemy.name} 被彻底冰封！下回合将无法行动！`, 'info');
+                        }
 
-            if (playerPoints > enemyPoints) {
-                // Player wins!
-                const dmgResult = enemy.takeDamage(playerPoints);
-                if (dmgResult.dodged) {
-                    addCombatLog(` 💨 ${enemy.name} 闪避了你的攻击！`, 'info');
-                } else {
-                    addCombatLog(` 💥 拼点获胜！你对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
-                    if (dmgResult.thornsDamage > 0) {
-                        player.takeDamage(dmgResult.thornsDamage);
-                        addCombatLog(`   🌵 受到荆棘反伤！你失去了 ${dmgResult.thornsDamage} 点生命值。`, 'damage-player');
+                        if (dmgResult.thornsDamage > 0) {
+                            player.takeDamage(dmgResult.thornsDamage);
+                            addCombatLog(`   🌵 受到 ${enemy.name} 的荆棘反伤！你失去了 ${dmgResult.thornsDamage} 点生命值。`, 'damage-player');
+                        }
                     }
-                }
-            } else if (enemyPoints > playerPoints) {
-                // Monster wins!
-                player.takeDamage(enemyPoints);
-                addCombatLog(` 👹 拼点失败！${enemy.name} 对你造成了 ${enemyPoints} 点伤害。`, 'damage-player');
+                } else if (enemyPoints > playerPoints) {
+                    // Monster wins!
+                    player.takeDamage(enemyPoints);
+                    addCombatLog(` 👹 拼点失败！${enemy.name} 对你造成了 ${enemyPoints} 点伤害。`, 'damage-player');
 
-                // Monster Vampire mechanism
-                const hasVamp = enemy.mechanisms.find(m => m.id === 'vampire');
-                if (hasVamp) {
-                    const healVal = Math.floor(enemyPoints * 0.5) || 1;
-                    enemy.heal(healVal);
-                    audio.playHeal();
-                    addCombatLog(`   🩸 ${enemy.name} 触发【吸血】：恢复了 ${healVal} 点生命值。`);
-                }
+                    // Monster Vampire mechanism
+                    const hasVamp = enemy.mechanisms.find(m => m.id === 'vampire');
+                    if (hasVamp) {
+                        const healVal = Math.floor(enemyPoints * 0.5) || 1;
+                        enemy.heal(healVal);
+                        audio.playHeal();
+                        addCombatLog(`   🩸 ${enemy.name} 触发【吸血】：恢复了 ${healVal} 点生命值。`);
+                    }
 
-                // Monster Weakness mechanism
-                const hasWeakness = enemy.mechanisms.find(m => m.id === 'weakness');
-                if (hasWeakness && Math.random() < 0.3) {
-                    addCombatLog(`   🧪 ${enemy.name} 散发出虚弱毒气！你下回合基础伤害将减半。`, 'damage-player');
-                    // Reduce next attack damage
-                    player.halvedDamageNextTurn = true;
+                    // Monster Weakness mechanism
+                    const hasWeakness = enemy.mechanisms.find(m => m.id === 'weakness');
+                    if (hasWeakness && Math.random() < 0.3) {
+                        addCombatLog(`   🧪 ${enemy.name} 散发出虚弱毒气！你下回合基础伤害将减半。`, 'damage-player');
+                        player.halvedDamageNextTurn = true;
+                    }
+                } else {
+                    addCombatLog(` 🤝 双方势均力敌，未造成伤害。`);
                 }
             } else {
-                // Draw
-                addCombatLog(` 🤝 双方势均力敌，未造成伤害。`);
+                // For non-primary targets: they only attack player if they roll higher
+                if (enemyPoints > playerPoints) {
+                    addCombatLog(`⚔️ 【偷袭】${enemy.name} (⚔️${enemyPoints}点) vs 你 (⚔️${playerPoints}点)`);
+                    player.takeDamage(enemyPoints);
+                    addCombatLog(` 👹 拼点落败！${enemy.name} 从侧翼对你造成了 ${enemyPoints} 点伤害。`, 'damage-player');
+
+                    const hasVamp = enemy.mechanisms.find(m => m.id === 'vampire');
+                    if (hasVamp) {
+                        const healVal = Math.floor(enemyPoints * 0.5) || 1;
+                        enemy.heal(healVal);
+                        audio.playHeal();
+                        addCombatLog(`   🩸 ${enemy.name} 触发【吸血】：恢复了 ${healVal} 点生命值。`);
+                    }
+                }
             }
         });
+
+        // 1.5 Apply Sweeping Blade cleave if player won the primary clash
+        const primaryEnemy = currentEnemies[combatState.activeTargetIndex];
+        if (hasSweeping && primaryEnemy && primaryEnemy.currentHp > 0 && playerPoints > primaryEnemy.currentRoll.clashPoints) {
+            // Find other alive enemies that lost their clash to the player
+            const otherLosers = currentEnemies.filter((e, idx) => {
+                return idx !== combatState.activeTargetIndex &&
+                       e.currentHp > 0 &&
+                       playerPoints > e.currentRoll.clashPoints;
+            });
+
+            const sweepingCount = Math.min(2, otherLosers.length);
+            if (sweepingCount > 0) {
+                addCombatLog(`⚔️ 【横扫之刃】狂啸！横扫风暴撕裂空气：`, 'info');
+                const shuffled = otherLosers.sort(() => 0.5 - Math.random());
+                for (let sIdx = 0; sIdx < sweepingCount; sIdx++) {
+                    const sweepEnemy = shuffled[sIdx];
+                    const sDmgResult = sweepEnemy.takeDamage(playerPoints);
+                    if (sDmgResult.dodged) {
+                        addCombatLog(`   💨 ${sweepEnemy.name} 躲过了横扫攻击。`);
+                    } else {
+                        addCombatLog(`   💥 剑气击中 ${sweepEnemy.name}！造成了 ${sDmgResult.damageDealt} 点溅射伤害。`, 'damage-enemy');
+                        hitsDealt++;
+                        
+                        // Check Freeze on cleave
+                        if (freezeMech && freezeMech.cooldown === 0 && Math.random() < 0.35) {
+                            sweepEnemy.frozenTurns = 1;
+                            freezeMech.cooldown = 4;
+                            addCombatLog(`❄️ 【寒冰之咬】触发！${sweepEnemy.name} 被横扫风暴彻底冰封！`, 'info');
+                        }
+
+                        if (sDmgResult.thornsDamage > 0) {
+                            player.takeDamage(sDmgResult.thornsDamage);
+                            addCombatLog(`   🌵 受到 ${sweepEnemy.name} 的荆棘反伤！你失去了 ${sDmgResult.thornsDamage} 点生命值。`, 'damage-player');
+                        }
+                    }
+                }
+            }
+        }
 
         // 2. Summons Clash with Random Monsters
         if (player.summons.length > 0 && hasAliveEnemies() && player.currentHp > 0) {
@@ -498,6 +682,7 @@ function setupCombatListeners() {
                             const dmgResult = enemy.takeDamage(summonPoints);
                             if (!dmgResult.dodged) {
                                 addCombatLog(`   💥 拼点获胜！凤凰对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点火焰伤害。`, 'damage-enemy');
+                                hitsDealt++;
                                 if (dmgResult.thornsDamage > 0) {
                                     s.takeDamage(dmgResult.thornsDamage);
                                     addCombatLog(`     🌵 凤凰受到 ${dmgResult.thornsDamage} 点荆棘反伤。`, 'damage-player');
@@ -528,6 +713,7 @@ function setupCombatListeners() {
                                 addCombatLog(`   💨 ${enemy.name} 闪避了 ${s.name} 的扑击。`);
                             } else {
                                 addCombatLog(`   💥 拼点获胜！${s.name} 对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
+                                hitsDealt++;
                                 if (dmgResult.thornsDamage > 0) {
                                     s.takeDamage(dmgResult.thornsDamage);
                                     addCombatLog(`     🌵 ${s.name} 受到 ${dmgResult.thornsDamage} 点荆棘反伤。`, 'damage-player');
@@ -584,6 +770,21 @@ function setupCombatListeners() {
             });
 
             // Reset round states
+            const hasBurn = player.mechanisms.find(m => m.id === 'mech_burn');
+            const freezeMech = player.mechanisms.find(m => m.id === 'mech_freeze');
+
+            if (hasBurn && hitsDealt > 0) {
+                combatState.nextTurnAtkBonus = hitsDealt;
+                addCombatLog(`🔥 【热血燃烧】激燃！本回合共击中敌人 ${hitsDealt} 次，下回合临时基础攻击力 +${hitsDealt}！`, 'info');
+            }
+
+            if (freezeMech && freezeMech.cooldown > 0) {
+                freezeMech.cooldown--;
+                if (freezeMech.cooldown === 0) {
+                    addCombatLog(`❄️ 【寒冰之咬】冷却完毕，已准备好下一次冰封！`, 'info');
+                }
+            }
+
             combatState.turn += 1;
             combatState.hasRolled = false;
             combatState.hasPlayerRolled = false;
@@ -593,6 +794,10 @@ function setupCombatListeners() {
             combatState.maxDiceValue = 0;
             combatState.turnDamageCalculated = null;
             combatState.activeTargetIndex = null;
+            
+            // Carry over Burn temporary attack bonus
+            player.tempAttackBonus = combatState.nextTurnAtkBonus || 0;
+            combatState.nextTurnAtkBonus = 0;
 
             // Reset currentRoll variables on entities so the UI clears previous results
             player.summons.forEach(s => s.currentRoll = null);
@@ -801,6 +1006,21 @@ function triggerGameWin() {
     getEl('win-hp').textContent = player.maxHp;
     getEl('win-atk').textContent = player.attack;
     
+    // Unlock next difficulty progression
+    const difficulties = ['easy', 'normal', 'hard', 'hell'];
+    const currentIdx = difficulties.indexOf(selectedDifficulty);
+    maxUnlockedDifficulty = localStorage.getItem('maxUnlockedDifficulty') || 'easy';
+    const maxIdx = difficulties.indexOf(maxUnlockedDifficulty);
+    
+    if (currentIdx === maxIdx && maxIdx < difficulties.length - 1) {
+        const nextDiff = difficulties[maxIdx + 1];
+        localStorage.setItem('maxUnlockedDifficulty', nextDiff);
+        maxUnlockedDifficulty = nextDiff;
+        alert(`🎉 恭喜通关！您已成功通关【${getDifficultyName(selectedDifficulty)}】难度，解锁了更高难度的选择：【${getDifficultyName(nextDiff)}】以及新的命运属性卡！`);
+    } else if (selectedDifficulty === 'hell') {
+        alert(`🏆 宿命征服！您已通关【地狱】最高难度，主宰了命运城堡！`);
+    }
+    
     // Mark castle as completed
     completedLevels.add('castle');
     currentLocation = 'castle';
@@ -819,6 +1039,8 @@ function setupGameOverListeners() {
         currentLocation = 'flag';
         
         showScreen('select-screen');
+        setupDifficultySelector(); // Refresh dropdown options to reflect newly unlocked states
+        
         // Unselect characters
         document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
         const startBtn = getEl('start-game-btn');

@@ -210,6 +210,9 @@ export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect)
     enemies.forEach((enemy, index) => {
         const card = document.createElement('div');
         card.className = 'combat-entity-card';
+        if (enemy.frozenTurns > 0) {
+            card.classList.add('frozen');
+        }
         if (enemy.currentHp <= 0) {
             card.style.opacity = '0.3';
             card.style.pointerEvents = 'none';

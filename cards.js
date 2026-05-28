@@ -105,6 +105,17 @@ export const CARD_POOL = [
             return "岩石傀儡加入战斗！";
         }
     },
+    {
+        id: 's_burn',
+        name: '热血燃烧',
+        grade: 'S',
+        type: 'mechanism',
+        desc: '每次成功对敌人造成伤害，下回合基础攻击力临时 +1 点（可叠加，持续1回合）。',
+        apply: (player) => {
+            player.mechanisms.push({ id: 'mech_burn', name: '热血燃烧' });
+            return "获得了被动机制【热血燃烧】！";
+        }
+    },
 
     // SS Grade
     {
@@ -151,6 +162,17 @@ export const CARD_POOL = [
             const fairy = new Summon('summon_fairy', '治愈花仙', 12, 1, '花仙会在回合结束时治愈你。', 'fairy');
             player.summons.push(fairy);
             return "治愈花仙加入战斗！";
+        }
+    },
+    {
+        id: 'ss_sweeping_blade',
+        name: '横扫之刃',
+        grade: 'SS',
+        type: 'mechanism',
+        desc: '拼点获胜时，除主要目标外，还会对额外最多 2 个随机存活且拼点失败的敌方造成等量伤害。',
+        apply: (player) => {
+            player.mechanisms.push({ id: 'mech_sweeping_blade', name: '横扫之刃' });
+            return "获得了被动机制【横扫之刃】！";
         }
     },
 
@@ -200,13 +222,38 @@ export const CARD_POOL = [
             player.summons.push(phoenix);
             return "炼狱凤凰降临战场！";
         }
+    },
+    {
+        id: 'sss_freeze',
+        name: '寒冰之咬',
+        grade: 'SSS',
+        type: 'mechanism',
+        desc: '拼点获胜并造成伤害时，有 35% 几率将目标冰冻1回合（下回合无法行动），冰冻冷却时间为 3 回合。',
+        apply: (player) => {
+            player.mechanisms.push({ id: 'mech_freeze', name: '寒冰之咬', cooldown: 0 });
+            return "获得了被动机制【寒冰之咬】！";
+        }
     }
 ];
 
+// Filter card pool based on active difficulty settings
+export function getFilteredCardPool(difficulty = 'easy') {
+    return CARD_POOL.filter(card => {
+        if (difficulty === 'easy') {
+            if (card.id === 's_burn' || card.id === 'ss_sweeping_blade' || card.id === 'sss_freeze') return false;
+        } else if (difficulty === 'normal') {
+            if (card.id === 'ss_sweeping_blade' || card.id === 'sss_freeze') return false;
+        } else if (difficulty === 'hard') {
+            if (card.id === 'sss_freeze') return false;
+        }
+        return true;
+    });
+}
+
 // Helper to pull random cards of a specific grade, or random mixed grades
-export function getRandomCards(count = 3) {
+export function getRandomCards(count = 3, difficulty = 'easy') {
     const cards = [];
-    const pool = [...CARD_POOL];
+    const pool = getFilteredCardPool(difficulty);
     
     // Weighted selection of grades: R: 55%, S: 25%, SS: 15%, SSS: 5%
     for (let i = 0; i < count; i++) {
@@ -310,7 +357,7 @@ export function getRandomDiceChoices() {
 }
 
 // Shop items generation: quality 1 to 5
-export function generateShopItems(level) {
+export function generateShopItems(level, difficulty = 'easy') {
     // Quality based on stage level: L1-6 -> Quality 1-2, L7-18 -> Quality 2-4, L19-36 -> Quality 3-5
     const getQuality = () => {
         const rand = Math.random();
@@ -401,7 +448,11 @@ export function generateShopItems(level) {
     else if (cardq === 4) cardGrade = 'SS';
     else if (cardq === 5) cardGrade = 'SSS';
 
-    const cardPoolForGrade = CARD_POOL.filter(c => c.grade === cardGrade);
+    const filteredCardPool = getFilteredCardPool(difficulty);
+    let cardPoolForGrade = filteredCardPool.filter(c => c.grade === cardGrade);
+    if (cardPoolForGrade.length === 0) {
+        cardPoolForGrade = CARD_POOL.filter(c => c.grade === cardGrade);
+    }
     const shopCard = cardPoolForGrade[Math.floor(Math.random() * cardPoolForGrade.length)];
     const cardCost = cardq * 15;
 

@@ -14,6 +14,7 @@ export class Player {
         this.summons = [];
         this.mechanisms = []; // Passive card effects
         this.halvedDamageNextTurn = false;
+        this.tempAttackBonus = 0; // Stacks from Burn mechanism
         
         // Mage specific
         this.mageForm = 'light'; // 'light' or 'dark'
@@ -82,38 +83,40 @@ export class Player {
     calculateTurnDamage(coinResult, maxDiceValue) {
         let damage = 0;
         let baseLog = "";
+        let currentAtk = this.attack + this.tempAttackBonus;
+        let bonusLog = this.tempAttackBonus > 0 ? `(含燃烧加成+${this.tempAttackBonus})` : "";
 
         if (this.type === 'mage') {
             if (this.mageForm === 'light') {
                 if (coinResult === 'heads') {
                     // Heads: rolled + Base Atk + 2
-                    damage = this.attack + maxDiceValue + 2;
-                    baseLog = `【光形态-正面】基础攻击 ${this.attack} + 骰子最大值 ${maxDiceValue} + 额外攻击 2 = ${damage}`;
+                    damage = currentAtk + maxDiceValue + 2;
+                    baseLog = `【光形态-正面】基础攻击 ${currentAtk}${bonusLog} + 骰子最大值 ${maxDiceValue} + 额外攻击 2 = ${damage}`;
                 } else {
                     // Tails: Base Atk - Math.max(0, rolled - 2)
                     const reduction = Math.max(0, maxDiceValue - 2);
-                    damage = this.attack - reduction;
-                    baseLog = `【光形态-反面】基础攻击 ${this.attack} - 骰子最大值减少值 ${reduction} (原骰子最大值为 ${maxDiceValue}) = ${damage}`;
+                    damage = currentAtk - reduction;
+                    baseLog = `【光形态-反面】基础攻击 ${currentAtk}${bonusLog} - 骰子最大值减少值 ${reduction} (原骰子最大值为 ${maxDiceValue}) = ${damage}`;
                 }
             } else { // Dark form
                 if (coinResult === 'tails') {
                     // Tails: adds rolled
-                    damage = this.attack + maxDiceValue;
-                    baseLog = `【暗形态-反面】基础攻击 ${this.attack} + 骰子最大值 ${maxDiceValue} = ${damage}`;
+                    damage = currentAtk + maxDiceValue;
+                    baseLog = `【暗形态-反面】基础攻击 ${currentAtk}${bonusLog} + 骰子最大值 ${maxDiceValue} = ${damage}`;
                 } else {
                     // Heads: subtracts rolled
-                    damage = this.attack - maxDiceValue;
-                    baseLog = `【暗形态-正面】基础攻击 ${this.attack} - 骰子最大值 ${maxDiceValue} = ${damage}`;
+                    damage = currentAtk - maxDiceValue;
+                    baseLog = `【暗形态-正面】基础攻击 ${currentAtk}${bonusLog} - 骰子最大值 ${maxDiceValue} = ${damage}`;
                 }
             }
         } else {
             // Normal formula
             if (coinResult === 'heads') {
-                damage = this.attack + maxDiceValue;
-                baseLog = `【投掷正面】基础攻击 ${this.attack} + 骰子最大值 ${maxDiceValue} = ${damage}`;
+                damage = currentAtk + maxDiceValue;
+                baseLog = `【投掷正面】基础攻击 ${currentAtk}${bonusLog} + 骰子最大值 ${maxDiceValue} = ${damage}`;
             } else {
-                damage = this.attack - maxDiceValue;
-                baseLog = `【投掷反面】基础攻击 ${this.attack} - 骰子最大值 ${maxDiceValue} = ${damage}`;
+                damage = currentAtk - maxDiceValue;
+                baseLog = `【投掷反面】基础攻击 ${currentAtk}${bonusLog} - 骰子最大值 ${maxDiceValue} = ${damage}`;
             }
         }
 
@@ -231,9 +234,21 @@ export class Monster {
         this.diceMax = 6;
         this.halvedDamageNextTurn = false;
         this.currentRoll = null;
+        this.frozenTurns = 0; // Frozen status bypass
     }
 
     calculateClashPoints(coinResult, maxDiceValue) {
+        if (this.frozenTurns > 0) {
+            this.frozenTurns--;
+            this.currentRoll = {
+                coinResult: 'tails',
+                maxDiceValue: 0,
+                clashPoints: 0,
+                log: `🥶 处于冰冻状态！无法行动。`
+            };
+            return 0;
+        }
+        
         let baseAttack = this.calculateAttackDamage(); // Handles Rage
         let damage = coinResult === 'heads' ? (baseAttack + maxDiceValue) : (baseAttack - maxDiceValue);
         let baseLog = `【${coinResult === 'heads' ? '正面' : '反面'}】基础攻击 ${baseAttack} ${coinResult === 'heads' ? '+' : '-'} 骰子值 ${maxDiceValue} = ${damage}`;

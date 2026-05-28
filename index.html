@@ -24,6 +24,20 @@
             <h1 class="game-title">币与骰之径</h1>
             <p class="game-subtitle">Coin & Dice: Path of Fate</p>
             
+            <!-- Difficulty Selection Panel -->
+            <div class="difficulty-container glass">
+                <h3>🌌 命运难度等级 (Select Difficulty)</h3>
+                <div class="difficulty-selector-row">
+                    <select id="difficulty-select" class="difficulty-select">
+                        <option value="easy">简单模式 (敌生命x0.8, 攻击x0.8) - 已解锁</option>
+                        <option value="normal" id="opt-normal" disabled>普通模式 (敌生命x1.2, 攻击x1.1) - [锁定]</option>
+                        <option value="hard" id="opt-hard" disabled>困难模式 (敌生命x1.7, 攻击x1.4, 机制+1) - [锁定]</option>
+                        <option value="hell" id="opt-hell" disabled>地狱模式 (敌生命x2.5, 攻击x2.0, 机制+2, 骰上限+1) - [锁定]</option>
+                    </select>
+                    <span id="difficulty-hint" class="difficulty-hint">完成前置难度通关以解除限制</span>
+                </div>
+            </div>
+            
             <div class="rules-container glass">
                 <h3>📜 命运法则 (游戏规则)</h3>
                 <ul>
