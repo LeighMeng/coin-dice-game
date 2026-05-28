@@ -395,7 +395,10 @@ export function generateMonstersForLevel(level) {
         
         // Pick random unique mechanisms
         const selectedMechs = [];
-        const pool = [...bossMechanisms];
+        let pool = [...bossMechanisms];
+        if (level > 12) {
+            pool = pool.filter(m => m.id !== 'weakness');
+        }
         for (let i = 0; i < mechanismsCount; i++) {
             if (pool.length === 0) break;
             const randIdx = Math.floor(Math.random() * pool.length);
@@ -415,7 +418,9 @@ export function generateMonstersForLevel(level) {
     } else {
         // Normal levels: 1-3 monsters
         let monsterCount = 1;
-        if (level > 24) {
+        if (level > 12) {
+            monsterCount = 2; // Fixed base count of 2 after Lvl 12 Boss
+        } else if (level > 24) {
             monsterCount = Math.floor(Math.random() * 3) + 1; // 1-3
         } else if (level > 8) {
             monsterCount = Math.floor(Math.random() * 2) + 1; // 1-2
@@ -436,8 +441,12 @@ export function generateMonstersForLevel(level) {
             // 1-2 mechanisms for normal monsters
             const mechanismsCount = level > 15 ? (Math.random() < 0.5 ? 2 : 1) : 1;
             const selectedMechs = [];
-            const pool = [...normalMechanisms];
+            let pool = [...normalMechanisms];
+            if (level > 12) {
+                pool = pool.filter(m => m.id !== 'weakness');
+            }
             for (let j = 0; j < mechanismsCount; j++) {
+                if (pool.length === 0) break;
                 const randIdx = Math.floor(Math.random() * pool.length);
                 selectedMechs.push(pool.splice(randIdx, 1)[0]);
             }

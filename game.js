@@ -198,7 +198,12 @@ function startCombatForLevel(level) {
         const name = monsterNames[Math.floor(Math.random() * monsterNames.length)] + " (支援)";
         const hp = Math.floor((12 + level * 3.5) * 0.6);
         const atk = Math.floor((1.5 + level * 0.3) * 0.8);
-        const selectedMechs = [normalMechanisms[Math.floor(Math.random() * normalMechanisms.length)]];
+        
+        let mechsPool = [...normalMechanisms];
+        if (level > 12) {
+            mechsPool = mechsPool.filter(m => m.id !== 'weakness');
+        }
+        const selectedMechs = [mechsPool[Math.floor(Math.random() * mechsPool.length)]];
         currentEnemies.push(new Monster(name, hp, atk, selectedMechs, false));
     }
     
@@ -218,7 +223,7 @@ function startCombatForLevel(level) {
             enemy.attack = Math.max(2, Math.floor(enemy.attack * 1.4));
             
             // Extra +1 random mechanism card
-            addRandomMechanismsToMonster(enemy, 1, level % 6 === 0);
+            addRandomMechanismsToMonster(enemy, 1, level % 6 === 0, level);
             
             // Elite/Boss gets +1 extra die count
             if (enemy.isBoss || level % 3 === 0) {
@@ -230,7 +235,7 @@ function startCombatForLevel(level) {
             enemy.attack = Math.max(2, Math.floor(enemy.attack * 2.0));
             
             // Extra +2 random mechanism cards
-            addRandomMechanismsToMonster(enemy, 2, level % 6 === 0);
+            addRandomMechanismsToMonster(enemy, 2, level % 6 === 0, level);
             
             // All monsters get +1 max dice bounds
             enemy.diceMax += 1;
@@ -313,7 +318,7 @@ function startCombatForLevel(level) {
     updateCombatUI();
 }
 
-function addRandomMechanismsToMonster(monster, count, isBossLevel) {
+function addRandomMechanismsToMonster(monster, count, isBossLevel, level = 1) {
     const normalMechanisms = [
         { id: 'thorns', name: '荆棘', desc: '反弹25%受到的伤害给攻击者。' },
         { id: 'regen', name: '再生', desc: '每回合结束时恢复5%的最大生命值。' },
@@ -330,7 +335,10 @@ function addRandomMechanismsToMonster(monster, count, isBossLevel) {
         { id: 'blockade', name: '骰子限制', desc: '降低玩家骰子最大值1点。' }
     ];
     
-    const pool = isBossLevel ? bossMechanisms : normalMechanisms;
+    let pool = isBossLevel ? bossMechanisms : normalMechanisms;
+    if (level > 12) {
+        pool = pool.filter(m => m.id !== 'weakness');
+    }
     
     for (let i = 0; i < count; i++) {
         const available = pool.filter(p => !monster.mechanisms.some(m => m.id === p.id));
