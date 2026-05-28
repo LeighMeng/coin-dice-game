@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命运与福运：硬币与骰子之径 (Coin & Dice: Path of Fate)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Floating Audio Control Panel -->
+    <div id="audio-panel" class="audio-panel glass">
+        <button id="toggle-bgm" class="audio-btn">🎵 音乐: 开启</button>
+        <button id="toggle-sfx" class="audio-btn">🔊 音效: 开启</button>
+    </div>
+
+    <div id="game-container">
+        
+        <!-- Screen 1: Character Selection & Intro -->
+        <section id="select-screen" class="screen active">
+            <h1 class="game-title">币与骰之径</h1>
+            <p class="game-subtitle">Coin & Dice: Path of Fate</p>
+            
+            <div class="rules-container glass">
+                <h3>📜 命运法则 (游戏规则)</h3>
+                <ul>
+                    <li>每一回合，你将投掷一枚<strong>硬币</strong>与若干<strong>骰子</strong>。</li>
+                    <li>🪙 硬币为<strong>正面</strong>：骰子中的<strong>最大值</strong>会<strong>加</strong>到你的攻击力上。</li>
+                    <li>🪙 硬币为<strong>反面</strong>：骰子中的<strong>最大值</strong>会从你的攻击力中<strong>扣除</strong>。</li>
+                    <li>⚠️ 如果最终攻击力为<strong>负数</strong>：本回合你将<strong>无法攻击</strong>，并且下一回合造成的<strong>伤害减半</strong>。</li>
+                    <li>👹 游戏共有 36 个关卡（30个怪物关，6个Boss关）。每 6 关为一个 Boss，拥有 3-4 个特殊机制。</li>
+                    <li>🛤️ 每通关一个关卡，会面临一个<strong>分岔路口</strong>，可选择前往：<strong>商店</strong>、<strong>火堆</strong> 或 <strong>旋行道</strong>。</li>
+                    <li>🎁 每关结束后会获得<strong>两次选择奖励</strong>：第一选择机制/卡牌，第二选择骰子更改。</li>
+                    <li>🏰 最终抵达第 36 关后的城堡即可通关！</li>
+                </ul>
+            </div>
+            
+            <h2 class="section-title">选择你的英雄 archetype</h2>
+            <div class="character-grid">
+                <!-- Random Hero -->
+                <div class="char-card glass" data-char="random">
+                    <div class="char-icon">🎲</div>
+                    <h3>命运浪人</h3>
+                    <p class="char-desc">属性完全随机，全凭命运眷顾的浪客。</p>
+                    <div class="char-stats">
+                        <span>HP: 20-30</span>
+                        <span>攻击: 1-5</span>
+                        <span>骰子: 1个 (1-6)</span>
+                    </div>
+                    <div class="char-passive">被动：无</div>
+                </div>
+
+                <!-- Dice Master -->
+                <div class="char-card glass" data-char="dicemaster">
+                    <div class="char-icon">👑</div>
+                    <h3>骰子大师</h3>
+                    <p class="char-desc">精通骰子之道的专家，开局即拥有掌控概率的优势。</p>
+                    <div class="char-stats">
+                        <span>HP: 30</span>
+                        <span>攻击: 1</span>
+                        <span>骰子: 2个 (1-6)</span>
+                    </div>
+                    <div class="char-passive">被动：多一个骰子，判定取最大值</div>
+                </div>
+
+                <!-- Knight -->
+                <div class="char-card glass" data-char="knight">
+                    <div class="char-icon">🛡️</div>
+                    <h3>圣殿骑士</h3>
+                    <p class="char-desc">身披重甲的誓言捍卫者，拥有极强的自我恢复能力。</p>
+                    <div class="char-stats">
+                        <span>HP: 50</span>
+                        <span>攻击: 1</span>
+                        <span>骰子: 1个 (1-6)</span>
+                    </div>
+                    <div class="char-passive">被动：每回合末固定恢复 2 点生命值</div>
+                </div>
+
+                <!-- Light & Dark Mage -->
+                <div class="char-card glass" data-char="mage">
+                    <div class="char-icon">☯️</div>
+                    <h3>光暗法师</h3>
+                    <p class="char-desc">掌握光与暗双重法则的奥术师，可通过切换形态扭转硬币判定的利弊。</p>
+                    <div class="char-stats">
+                        <span>HP: 25</span>
+                        <span>攻击: 2</span>
+                        <span>骰子: 1个 (1-6)</span>
+                    </div>
+                    <div class="char-passive">被动：可在光/暗形态间手动切换</div>
+                </div>
+            </div>
+
+            <div class="name-input-container">
+                <input type="text" id="player-name-input" placeholder="输入你的英雄名字 (留空则使用默认)" autocomplete="off">
+                <button id="start-game-btn" class="btn primary-btn disabled" disabled>开启命运之途</button>
+            </div>
+        </section>
+
+        <!-- Screen 2: Main Map & HUD Interface -->
+        <section id="main-screen" class="screen">
+            <!-- HUD top-bar -->
+            <header class="hud glass">
+                <div class="hud-item player-info">
+                    <span class="hud-icon" id="hud-avatar">👤</span>
+                    <div>
+                        <div id="hud-name" class="hud-bold">英雄名字</div>
+                        <div class="hud-class" id="hud-class">职业</div>
+                    </div>
+                </div>
+                
+                <div class="hud-item">
+                    <span>❤️ 生命值</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="hud-hp-bar"></div>
+                        <span class="progress-text" id="hud-hp-text">25/25</span>
+                    </div>
+                </div>
+                
+                <div class="hud-item stats-grid">
+                    <div>⚔️ 攻击: <span id="hud-atk" class="hud-val">5</span></div>
+                    <div>🪙 金币: <span id="hud-gold" class="hud-val">0</span></div>
+                    <div>🎲 骰子: <span id="hud-dice-desc" class="hud-val">1个 (1-6)</span></div>
+                    <div>🚩 关卡: <span id="hud-level" class="hud-val">0 / 36</span></div>
+                </div>
+
+                <div class="hud-item active-summons-hud">
+                    <span>👥 召唤物:</span>
+                    <div id="hud-summons-list" class="hud-summons">无</div>
+                </div>
+            </header>
+
+            <!-- Map View Area -->
+            <div class="map-view-container glass">
+                <h3>🗺️ 命运旅途进度</h3>
+                <div id="map-track-container">
+                    <div id="map-track">
+                        <!-- Flag (Start) -> Level 1 -> Fork ... -> Castle (End) -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Area / Dynamic Views -->
+            <div id="action-area" class="glass">
+                
+                <!-- View: Fork Selection -->
+                <div id="fork-view" class="action-view">
+                    <h2>🛣️ 前路面临选择</h2>
+                    <p>关卡已攻克！前方的道路开始分岔，三个方向对应着不同的机遇与考验。选择一条路前进吧：</p>
+                    <div class="fork-buttons-container">
+                        <button id="fork-shop-btn" class="fork-btn">
+                            <span class="fork-icon">🏪</span>
+                            <span class="fork-title">神秘商店</span>
+                            <span class="fork-desc">购买提升道具、强力召唤契约或稀有卡牌</span>
+                        </button>
+                        <button id="fork-camp-btn" class="fork-btn">
+                            <span class="fork-icon">🔥</span>
+                            <span class="fork-title">熊熊营火</span>
+                            <span class="fork-desc">休憩疗伤、磨砺武器或强化召唤物属性</span>
+                        </button>
+                        <button id="fork-mystery-btn" class="fork-btn">
+                            <span class="fork-icon">🌀</span>
+                            <span class="fork-title">未知旋行道</span>
+                            <span class="fork-desc">偶遇惊喜机缘、遭遇伏击或命运博弈</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- View: Combat View -->
+                <div id="combat-view" class="action-view">
+                    <div class="combat-grid">
+                        
+                        <!-- Left: Ally / Player Side -->
+                        <div class="combat-side ally-side">
+                            <div class="combat-entity-card player-combat-card">
+                                <div class="entity-avatar">👤</div>
+                                <h3 id="player-combat-name">英雄</h3>
+                                <div class="entity-hp-container">
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" id="combat-player-hp-bar"></div>
+                                        <span class="progress-text" id="combat-player-hp-text">25/25</span>
+                                    </div>
+                                </div>
+                                <div class="entity-stats">
+                                    <span>⚔️ 攻击: <span id="combat-player-atk">2</span></span>
+                                    <span>🎲 骰子: <span id="combat-player-dice">1个</span></span>
+                                </div>
+                                
+                                <!-- Light & Dark Mage Toggle inside Combat -->
+                                <div id="mage-toggle-container" class="hidden">
+                                    <div class="mage-status-text">当前形态: <span id="mage-current-form">光形态</span></div>
+                                    <button id="mage-switch-btn" class="btn secondary-btn">☯️ 切换光/暗形态</button>
+                                </div>
+                                
+                                <div id="player-buffs" class="entity-buffs">
+                                    <!-- Buff Icons -->
+                                </div>
+                            </div>
+
+                            <!-- Summon Cards Container -->
+                            <div class="summons-group">
+                                <h4>召唤随从</h4>
+                                <div id="combat-summons-container" class="summons-grid">
+                                    <!-- Dynamic Summon Cards -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Center: Fate Roll Action (Coin & Dice) -->
+                        <div class="combat-center">
+                            <div class="stage-tag" id="combat-stage-tag">第 1 关</div>
+                            
+                            <!-- Coin Flip Animation Area -->
+                            <div class="coin-container">
+                                <div class="coin" id="coin">
+                                    <div class="coin-face coin-front">正面</div>
+                                    <div class="coin-face coin-back">反面</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Dice Rolling Area -->
+                            <div id="dice-container" class="dice-container">
+                                <!-- Dynamic Dice -->
+                            </div>
+
+                            <div class="combat-actions">
+                                <button id="roll-btn" class="btn primary-btn animate-pulse">🪙 掷出我方硬币与骰子 🎲</button>
+                                <button id="enemy-roll-btn" class="btn primary-btn hidden animate-pulse">👾 开始怪物投掷 🎲</button>
+                                <button id="attack-btn" class="btn confirm-btn hidden">⚔️ 确认攻击</button>
+                            </div>
+
+                            <div class="target-select-tip" id="target-tip">← 投掷完毕，点击下方按钮进行拼点结算</div>
+                        </div>
+
+                        <!-- Right: Enemy Side -->
+                        <div class="combat-side enemy-side">
+                            <h4>敌方怪物</h4>
+                            <div id="combat-enemies-container" class="enemies-grid">
+                                <!-- Dynamic Enemy Cards -->
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Combat Log Output Console -->
+                    <div class="combat-log-console">
+                        <h4>📜 战局记录</h4>
+                        <div id="combat-log-list" class="log-list">
+                            <!-- Logs here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Double Choice Reward -->
+                <div id="reward-view" class="action-view">
+                    <h2 id="reward-title">🎁 关卡战利品</h2>
+                    
+                    <!-- Reward Phase 1: Mechanism or Card selection -->
+                    <div id="reward-phase1" class="reward-phase">
+                        <h3>第一抉择：选择你的机制卡或增加卡</h3>
+                        <p class="reward-sub">从下方三张卡牌中选择一张融入你的命运印记：</p>
+                        <div class="card-choices-grid" id="card-rewards-container">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+
+                    <!-- Reward Phase 2: Dice adjustments -->
+                    <div id="reward-phase2" class="reward-phase hidden">
+                        <h3>第二抉择：调整你的命运骰子</h3>
+                        <p class="reward-sub">骰子的数量与数值区间决定了你的上限与下限，选择一项更改：</p>
+                        <div class="dice-choices-grid" id="dice-rewards-container">
+                            <!-- Dynamic Dice Upgrade Cards -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Shop View -->
+                <div id="shop-view" class="action-view">
+                    <div class="shop-header">
+                        <h2>🏪 神秘流浪商店</h2>
+                        <div class="shop-gold-display">拥有金币: <span id="shop-player-gold">0</span> 🪙</div>
+                    </div>
+                    <p class="shop-intro">“买定离手，命运的价码早已在暗中标好。”店主沙哑地低语道。</p>
+                    <div class="shop-items-grid" id="shop-items-container">
+                        <!-- Dynamic Shop Items -->
+                    </div>
+                    <div class="shop-actions">
+                        <button id="exit-shop-btn" class="btn secondary-btn">离开商店</button>
+                    </div>
+                </div>
+
+                <!-- View: Campfire View -->
+                <div id="campfire-view" class="action-view">
+                    <h2>🔥 熊熊温暖营火</h2>
+                    <p class="campfire-intro">营火发出温暖明亮的光芒。在这里，你可以稍作休整，或者磨练自身力量。</p>
+                    <div class="campfire-container">
+                        <div class="campfire-art">🔥</div>
+                        <div class="campfire-options-grid" id="campfire-options-container">
+                            <!-- Dynamic Options -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View: Mystery Event View -->
+                <div id="mystery-view" class="action-view">
+                    <h2 id="mystery-event-title">🌀 旋行道未知事件</h2>
+                    <div class="mystery-container glass-inset">
+                        <div class="mystery-art" id="mystery-art">🌀</div>
+                        <div class="mystery-content">
+                            <p class="mystery-description" id="mystery-desc">你面前出现了一条隐秘的小路，云雾缭绕...</p>
+                            <div class="mystery-choices-grid" id="mystery-choices-container">
+                                <!-- Choices buttons -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mystery-results hidden" id="mystery-results-container">
+                        <p class="mystery-result-text" id="mystery-result-text">你获得了一些好东西...</p>
+                        <button id="exit-mystery-btn" class="btn primary-btn">继续旅程</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Screen 3: Game Over Screen -->
+        <section id="gameover-screen" class="screen">
+            <h1 class="death-title">💀 命运在此终结</h1>
+            <p class="death-subtitle">你未能在命运之路走到最后...</p>
+            <div class="gameover-stats glass">
+                <h3>最终战绩</h3>
+                <p>英雄：<span id="go-name">骑士</span></p>
+                <p>通关层数：<span id="go-level">5 / 36</span></p>
+                <p>拥有金币：<span id="go-gold">12</span> 🪙</p>
+            </div>
+            <button id="restart-game-btn" class="btn primary-btn">重新接受命运的召唤</button>
+        </section>
+
+        <!-- Screen 4: Game Win Screen (Castle Entry) -->
+        <section id="win-screen" class="screen">
+            <div class="castle-art">🏰</div>
+            <h1 class="win-title">✨ 抵达终焉城堡 ✨</h1>
+            <p class="win-subtitle">恭喜你！成功通过了 36 关命运之劫，入主城堡，成为了命运的主宰！</p>
+            <div class="win-stats glass">
+                <h3>传奇履历</h3>
+                <p>传奇主宰：<span id="win-name">骰子大师</span></p>
+                <p>累计金币：<span id="win-gold">100</span> 🪙</p>
+                <p>骰子状态：<span id="win-dice">3个 (2-8)</span></p>
+                <p>最终生命上限：<span id="win-hp">85</span></p>
+                <p>最终基础攻击：<span id="win-atk">12</span></p>
+            </div>
+            <button id="restart-win-btn" class="btn primary-btn">重新征服命运</button>
+        </section>
+
+    </div>
+
+    <!-- JavaScript Module Loading -->
+    <script type="module" src="game.js"></script>
+</body>
+</html>
