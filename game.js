@@ -872,6 +872,13 @@ function hasAliveEnemies() {
 function triggerVictory() {
     addCombatLog(`🎉 胜利！所有敌方怪物已被消灭。`, 'info');
     
+    // 在遭遇小镇事件过后，卫兵和猎手将会离开队伍
+    const hasVillagers = player.summons.some(s => s.id === 'summon_town_guard' || s.id === 'summon_town_hunter');
+    if (hasVillagers) {
+        player.summons = player.summons.filter(s => s.id !== 'summon_town_guard' && s.id !== 'summon_town_hunter');
+        addCombatLog(`👋 战斗结束，小镇卫兵与猎手离开了队伍。`, 'info');
+    }
+    
     // Restore player's maxHp from blizzard debuff
     if (combatState.appliedMaxHpDebuff > 0) {
         player.maxHp += combatState.appliedMaxHpDebuff;
@@ -918,7 +925,8 @@ function startDoubleChoiceRewards() {
     // Draft Choice 1: Upgrade/Mechanism Cards
     const cards = getRandomCards(3);
     renderRewards(1, cards, (chosenCard) => {
-        if (chosenCard.type === 'summon' && player.summons.length >= 3) {
+        const standardSummonsCount = player.summons.filter(s => s.id !== 'summon_town_guard' && s.id !== 'summon_town_hunter').length;
+        if (chosenCard.type === 'summon' && standardSummonsCount >= 3) {
             alert("您的召唤物数量已达上限（最多3个），无法招募新召唤物！请选择其他卡牌。");
             return;
         }
@@ -976,7 +984,8 @@ function enterShop() {
 function handleBuyItem(index) {
     const item = currentShopItems[index];
     if (player.gold >= item.cost) {
-        if (item.type === 'summon' && player.summons.length >= 3) {
+        const standardSummonsCount = player.summons.filter(s => s.id !== 'summon_town_guard' && s.id !== 'summon_town_hunter').length;
+        if (item.type === 'summon' && standardSummonsCount >= 3) {
             alert("您的召唤物数量已达上限（最多3个），无法购买新召唤物！");
             return;
         }

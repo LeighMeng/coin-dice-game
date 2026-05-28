@@ -806,13 +806,6 @@ export const MYSTERY_EVENTS = [
             {
                 text: '招募小镇卫兵 (召唤物：攻 3 / HP 14)',
                 effect: (player) => {
-                    if (player.summons.length >= 3) {
-                        return {
-                            success: false,
-                            isSummonLimit: true,
-                            log: '你的召唤物数量已达上限（最多3个），无法招募【小镇卫兵】！请选择其他选项。'
-                        };
-                    }
                     const guard = new Summon('summon_town_guard', '小镇卫兵', 14, 3, '防守坚韧的小镇护卫兵。', 'guard');
                     player.summons.push(guard);
                     return { success: true, log: '【小镇卫兵】（HP: 14, 攻: 3）手持长盾加入了你的队伍，誓死守护你的安全！' };
@@ -821,13 +814,6 @@ export const MYSTERY_EVENTS = [
             {
                 text: '招募小镇猎手 (召唤物：攻 4 / HP 10)',
                 effect: (player) => {
-                    if (player.summons.length >= 3) {
-                        return {
-                            success: false,
-                            isSummonLimit: true,
-                            log: '你的召唤物数量已达上限（最多3个），无法招募【小镇猎手】！请选择其他选项。'
-                        };
-                    }
                     const hunter = new Summon('summon_town_hunter', '小镇猎手', 10, 4, '箭法高强的小镇精英猎人。', 'hunter');
                     player.summons.push(hunter);
                     return { success: true, log: '【小镇猎手】（HP: 10, 攻: 4）挽起长弓加入了你的队伍，誓将射穿前方阻碍！' };
