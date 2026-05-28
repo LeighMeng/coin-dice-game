@@ -315,6 +315,13 @@ function startCombatForLevel(level) {
                 enemy.diceCount += 1;
             }
         }
+
+        // Apply +10% HP and +20% Attack scaling after the third boss (level > 18)
+        if (level > 18) {
+            enemy.maxHp = Math.round(enemy.maxHp * 1.1);
+            enemy.currentHp = enemy.maxHp;
+            enemy.attack = Math.round(enemy.attack * 1.2);
+        }
     });
 
     // Reset Combat States
