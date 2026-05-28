@@ -255,13 +255,13 @@ export function getRandomCards(count = 3, difficulty = 'easy') {
     const cards = [];
     const pool = getFilteredCardPool(difficulty);
     
-    // Weighted selection of grades: R: 55%, S: 25%, SS: 15%, SSS: 5%
+    // Weighted selection of grades: R: 79%, S: 15%, SS: 5%, SSS: 1%
     for (let i = 0; i < count; i++) {
         const rand = Math.random();
         let targetGrade = 'R';
-        if (rand < 0.05) targetGrade = 'SSS';
-        else if (rand < 0.20) targetGrade = 'SS';
-        else if (rand < 0.45) targetGrade = 'S';
+        if (rand < 0.01) targetGrade = 'SSS';
+        else if (rand < 0.06) targetGrade = 'SS';
+        else if (rand < 0.21) targetGrade = 'S';
         
         const matchingCards = pool.filter(c => c.grade === targetGrade);
         if (matchingCards.length > 0) {
@@ -359,11 +359,12 @@ export function getRandomDiceChoices() {
 // Shop items generation: quality 1 to 5
 export function generateShopItems(level, difficulty = 'easy') {
     // Quality based on stage level: L1-6 -> Quality 1-2, L7-18 -> Quality 2-4, L19-36 -> Quality 3-5
+    // Decreased the probability of higher quality items
     const getQuality = () => {
         const rand = Math.random();
-        if (level <= 6) return rand < 0.7 ? 1 : 2;
-        if (level <= 18) return rand < 0.4 ? 2 : (rand < 0.8 ? 3 : 4);
-        return rand < 0.3 ? 3 : (rand < 0.75 ? 4 : 5);
+        if (level <= 6) return rand < 0.85 ? 1 : 2;
+        if (level <= 18) return rand < 0.60 ? 2 : (rand < 0.90 ? 3 : 4);
+        return rand < 0.50 ? 3 : (rand < 0.85 ? 4 : 5);
     };
 
     const items = [];
