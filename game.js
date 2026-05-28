@@ -918,6 +918,10 @@ function startDoubleChoiceRewards() {
     // Draft Choice 1: Upgrade/Mechanism Cards
     const cards = getRandomCards(3);
     renderRewards(1, cards, (chosenCard) => {
+        if (chosenCard.type === 'summon' && player.summons.length >= 3) {
+            alert("您的召唤物数量已达上限（最多3个），无法招募新召唤物！请选择其他卡牌。");
+            return;
+        }
         const log = chosenCard.apply(player);
         addCombatLog(`💎 选择了卡牌：【${chosenCard.name}】。${log}`);
         
@@ -972,6 +976,10 @@ function enterShop() {
 function handleBuyItem(index) {
     const item = currentShopItems[index];
     if (player.gold >= item.cost) {
+        if (item.type === 'summon' && player.summons.length >= 3) {
+            alert("您的召唤物数量已达上限（最多3个），无法购买新召唤物！");
+            return;
+        }
         player.gold -= item.cost;
         const msg = item.apply(player);
         
@@ -1013,6 +1021,11 @@ function enterMysteryLane() {
     renderMysteryEvent(event, (choiceIndex) => {
         const choice = event.choices[choiceIndex];
         const res = choice.effect(player);
+        
+        if (res.isSummonLimit) {
+            alert(res.log);
+            return;
+        }
         
         if (res.triggerCombat) {
             // Initiate ambush combat
