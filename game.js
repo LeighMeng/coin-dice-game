@@ -853,6 +853,7 @@ function setupCombatListeners() {
                         if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
                             const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
                             enemy.takeDamage(thunderDmg);
+                            enemy.currentHp = Math.max(1, enemy.currentHp); // 特殊事件不致死
                             addCombatLog(`   ⚡ 【雷霆风暴】降临！额外对 ${enemy.name} 造成了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
                         }
                         
@@ -936,6 +937,7 @@ function setupCombatListeners() {
                         if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
                             const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
                             sweepEnemy.takeDamage(thunderDmg);
+                            sweepEnemy.currentHp = Math.max(1, sweepEnemy.currentHp); // 特殊事件不致死
                             addCombatLog(`     ⚡ 【雷霆风暴】闪电击中 ${sweepEnemy.name}！额外追加了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
                         }
                         
@@ -988,6 +990,7 @@ function setupCombatListeners() {
                                 if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
                                     const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
                                     enemy.takeDamage(thunderDmg);
+                                    enemy.currentHp = Math.max(1, enemy.currentHp); // 特殊事件不致死
                                     addCombatLog(`     ⚡ 【雷霆风暴】闪电击中 ${enemy.name}！额外追加了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
                                 }
 
@@ -1027,6 +1030,7 @@ function setupCombatListeners() {
                                  if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
                                      const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
                                      enemy.takeDamage(thunderDmg);
+                                     enemy.currentHp = Math.max(1, enemy.currentHp); // 特殊事件不致死
                                      addCombatLog(`     ⚡ 【雷霆风暴】闪电击中 ${enemy.name}！额外追加了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
                                  }
                                 if (dmgResult.thornsDamage > 0) {
@@ -1091,7 +1095,7 @@ function setupCombatListeners() {
                 addCombatLog(`🌋 【火山爆发】熔岩四溅！你受到了 ${volcanoDamage} 点真实火焰伤害。`, 'damage-player');
                 currentEnemies.forEach(e => {
                     if (e.currentHp > 0) {
-                        e.currentHp = Math.max(0, e.currentHp - volcanoDamage);
+                        e.currentHp = Math.max(1, e.currentHp - volcanoDamage); // 特殊事件不致死
                         addCombatLog(`🌋 【火山爆发】熔岩四溅！${e.name} 受到了 ${volcanoDamage} 点真实火焰伤害。`, 'damage-enemy');
                     }
                 });
