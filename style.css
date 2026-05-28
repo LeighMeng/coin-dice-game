@@ -1497,3 +1497,99 @@ p.game-subtitle {
     border: 1px solid #38bdf8;
     box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
 }
+
+/* Weather Banner styles */
+.weather-banner {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(90deg, rgba(20, 16, 32, 0.85), rgba(99, 102, 241, 0.15));
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 0 16px;
+    margin-bottom: 0px;
+    max-height: 0px;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.weather-banner.expanded {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    max-height: 100px;
+    opacity: 1;
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.weather-banner-icon {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+.weather-banner-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.weather-banner-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.weather-banner-desc {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}
+
+/* Weather Toast style */
+.weather-toast {
+    position: fixed;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 30px;
+    background: rgba(15, 10, 25, 0.95);
+    border: 1px solid var(--accent-color);
+    box-shadow: 0 0 30px rgba(234, 179, 8, 0.4);
+    border-radius: 16px;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    max-width: 90%;
+    width: 480px;
+}
+
+.weather-toast.visible {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+.weather-toast-icon {
+    font-size: 3rem;
+    animation: bounceSlow 2s infinite alternate;
+}
+
+.weather-toast-content {
+    flex: 1;
+}
+
+.weather-toast-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    margin-bottom: 5px;
+}
+
+.weather-toast-desc {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}

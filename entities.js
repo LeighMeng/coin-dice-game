@@ -85,11 +85,14 @@ export class Player {
     }
 
     // Calculate attack damage for this turn
-    calculateTurnDamage(coinResult, maxDiceValue) {
+    calculateTurnDamage(coinResult, maxDiceValue, atkModifier = 0, isFog = false) {
         let damage = 0;
         let baseLog = "";
-        let currentAtk = this.attack + this.tempAttackBonus;
-        let bonusLog = this.tempAttackBonus > 0 ? `(含燃烧加成+${this.tempAttackBonus})` : "";
+        let currentAtk = this.attack + this.tempAttackBonus + atkModifier;
+        let bonusTextParts = [];
+        if (this.tempAttackBonus > 0) bonusTextParts.push(`燃烧+${this.tempAttackBonus}`);
+        if (atkModifier !== 0) bonusTextParts.push(`环境修正+${atkModifier}`);
+        let bonusLog = bonusTextParts.length > 0 ? `(含${bonusTextParts.join(',')})` : "";
 
         if (this.type === 'mage') {
             if (this.mageForm === 'light') {
@@ -136,6 +139,16 @@ export class Player {
                 baseLog += ` (幸运一击增加3点伤害!)`;
             }
         });
+
+        // Apply fog weather effect
+        let fogDmgModifier = 0;
+        let fogLog = "";
+        if (isFog && Math.random() < 0.3) {
+            fogDmgModifier = Math.random() < 0.5 ? 1 : -1;
+            fogLog = ` (🌫️ 迷雾影响: ${fogDmgModifier > 0 ? '+' : ''}${fogDmgModifier})`;
+        }
+        damage += fogDmgModifier;
+        baseLog += fogLog;
 
         let finalDamage = damage;
         let negativeAtkLog = "";
@@ -184,13 +197,23 @@ export class Summon {
         this.currentRoll = null;
     }
 
-    calculateClashPoints(coinResult, maxDiceValue, atkModifier = 0, isArcher = false) {
+    calculateClashPoints(coinResult, maxDiceValue, atkModifier = 0, isArcher = false, isFog = false) {
         let baseAtk = this.attack + atkModifier;
         let damage = coinResult === 'heads' ? (baseAtk + maxDiceValue) : (baseAtk - maxDiceValue);
         
         let modText = atkModifier !== 0 ? `(环境修正${atkModifier > 0 ? '+' : ''}${atkModifier})` : '';
         let baseLog = `【${coinResult === 'heads' ? '正面' : '反面'}】基础攻击 ${baseAtk}${modText} ${coinResult === 'heads' ? '+' : '-'} 骰子值 ${maxDiceValue} = ${damage}`;
         
+        // Apply fog weather effect
+        let fogDmgModifier = 0;
+        let fogLog = "";
+        if (isFog && Math.random() < 0.3) {
+            fogDmgModifier = Math.random() < 0.5 ? 1 : -1;
+            fogLog = ` (🌫️ 迷雾影响: ${fogDmgModifier > 0 ? '+' : ''}${fogDmgModifier})`;
+        }
+        damage += fogDmgModifier;
+        baseLog += fogLog;
+
         let finalDamage = damage;
         let suffix = "";
         
@@ -250,7 +273,7 @@ export class Monster {
         this.frozenTurns = 0; // Frozen status bypass
     }
 
-    calculateClashPoints(coinResult, maxDiceValue) {
+    calculateClashPoints(coinResult, maxDiceValue, isFog = false) {
         if (this.frozenTurns > 0) {
             this.frozenTurns--;
             this.currentRoll = {
@@ -265,6 +288,16 @@ export class Monster {
         let baseAttack = this.calculateAttackDamage(); // Handles Rage
         let damage = coinResult === 'heads' ? (baseAttack + maxDiceValue) : (baseAttack - maxDiceValue);
         let baseLog = `【${coinResult === 'heads' ? '正面' : '反面'}】基础攻击 ${baseAttack} ${coinResult === 'heads' ? '+' : '-'} 骰子值 ${maxDiceValue} = ${damage}`;
+        
+        // Apply fog weather effect
+        let fogDmgModifier = 0;
+        let fogLog = "";
+        if (isFog && Math.random() < 0.3) {
+            fogDmgModifier = Math.random() < 0.5 ? 1 : -1;
+            fogLog = ` (🌫️ 迷雾影响: ${fogDmgModifier > 0 ? '+' : ''}${fogDmgModifier})`;
+        }
+        damage += fogDmgModifier;
+        baseLog += fogLog;
         
         let finalDamage = damage;
         let suffix = "";

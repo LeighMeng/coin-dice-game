@@ -2,7 +2,7 @@
 
 import { Player, generateMonstersForLevel, Monster } from './entities.js';
 import { getRandomCards, getRandomDiceChoices, generateShopItems, getCampfireOptions, getRandomMysteryEvent } from './cards.js';
-import { getEl, renderMap, renderHUD, renderCombat, animateCoinFlip, animateDiceRoll, resetCoinAndDice, renderRewards, renderShop, renderCampfire, renderMysteryEvent, showMysteryResult } from './render.js';
+import { getEl, renderMap, renderHUD, renderCombat, animateCoinFlip, animateDiceRoll, resetCoinAndDice, renderRewards, renderShop, renderCampfire, renderMysteryEvent, showMysteryResult, showWeatherToast } from './render.js';
 import { audio } from './audio.js';
 
 // Game State variables
@@ -13,6 +13,67 @@ let currentLocation = 'flag'; // 'flag', 'level_1', 'fork_1', 'level_2', ...
 let maxUnlockedDifficulty = localStorage.getItem('maxUnlockedDifficulty') || 'easy';
 let selectedDifficulty = 'easy';
 let activeEnvironmentalEvent = null;
+
+const COMBAT_EVENTS = [
+    {
+        id: 'storm',
+        name: '暴风雨',
+        icon: '🌧️',
+        summonAtkModifier: -1,
+        desc: '暴风雨呼啸：本场战斗所有召唤物的攻击力 -1！'
+    },
+    {
+        id: 'blizzard',
+        name: '暴风雪',
+        icon: '❄️',
+        tempMaxHpDebuff: 10,
+        desc: '暴风雪肆虐：本次战斗玩家最大生命值上限临时减少 10 点！'
+    },
+    {
+        id: 'wings_of_fury',
+        name: '狂暴之翼',
+        icon: '🦅',
+        extraMonsterCount: 1,
+        summonAtkModifier: 1,
+        desc: '狂暴兽群涌现：本场战斗额外增加 1 个怪物，但我方召唤物攻击力 +1！'
+    },
+    {
+        id: 'sunny',
+        name: '阳光明媚',
+        icon: '☀️',
+        playerAtkModifier: 1,
+        desc: '暖阳高照：阳光普照大地，本场战斗英雄基础攻击力 +1！'
+    },
+    {
+        id: 'thunderstorm',
+        name: '雷霆风暴',
+        icon: '⚡',
+        thunderBonusDamage: 2,
+        desc: '雷鸣电闪：电光狂舞，我方拼点获胜并造成伤害时，额外追加 2 点真实雷击伤害！'
+    },
+    {
+        id: 'volcano',
+        name: '火山爆发',
+        icon: '🌋',
+        volcanoDamage: 2,
+        desc: '熔岩喷发：火山喷发，每回合结束时，玩家与所有怪物同时受到 2 点真实火焰伤害！'
+    },
+    {
+        id: 'fog',
+        name: '迷雾重重',
+        icon: '🌫️',
+        fogEffect: true,
+        desc: '迷雾笼罩：浓雾弥漫，双方拼点最终值有 30% 几率随机增加或减少 1 点！'
+    },
+    {
+        id: 'lucky_star',
+        name: '幸运星降临',
+        icon: '⭐',
+        luckyStarEffect: true,
+        desc: '群星闪烁：好运眷顾，本场战斗英雄投掷硬币正面几率额外提升 15%！'
+    }
+];
+
 let combatState = {
     turn: 1,
     hasRolled: false,
@@ -185,6 +246,15 @@ function startCombatForLevel(level) {
     player.level = level;
     currentEnemies = generateMonstersForLevel(level);
     
+    // If no environmental event was preset by mystery lane, roll one!
+    if (!activeEnvironmentalEvent) {
+        const randomIndex = Math.floor(Math.random() * COMBAT_EVENTS.length);
+        activeEnvironmentalEvent = { ...COMBAT_EVENTS[randomIndex] };
+    }
+    
+    // Trigger toast notification for the special event
+    showWeatherToast(activeEnvironmentalEvent);
+    
     // Apply environmental wings of fury extra monster
     if (activeEnvironmentalEvent && activeEnvironmentalEvent.extraMonsterCount > 0) {
         const normalMechanisms = [
@@ -301,7 +371,17 @@ function startCombatForLevel(level) {
         } else if (activeEnvironmentalEvent.id === 'blizzard') {
             addCombatLog(`❄️ 暴风雪肆虐：本场战斗你的最大生命值上限临时 -10！`, 'damage-player');
         } else if (activeEnvironmentalEvent.id === 'wings_of_fury') {
-            addCombatLog(`🦅 狂暴之翼：怪物数量本回合 +1，但本场战斗你的召唤物攻击力 +1！`, 'info');
+            addCombatLog(`🦅 狂暴之翼：额外增加 1 个怪物，但我方召唤物攻击力 +1！`, 'info');
+        } else if (activeEnvironmentalEvent.id === 'sunny') {
+            addCombatLog(`☀️ 阳光明媚：本场战斗我方英雄基础攻击力 +1！`, 'info');
+        } else if (activeEnvironmentalEvent.id === 'thunderstorm') {
+            addCombatLog(`⚡ 雷霆风暴：拼点获胜时，对敌方额外追加 2 点真实雷击伤害！`, 'info');
+        } else if (activeEnvironmentalEvent.id === 'volcano') {
+            addCombatLog(`🌋 火山爆发：每回合结束时，玩家与怪物同时受到 2 点真实火焰伤害！`, 'damage-player');
+        } else if (activeEnvironmentalEvent.id === 'fog') {
+            addCombatLog(`🌫️ 迷雾重重：双方拼点结算时有 30% 几率随机增加或减少 1 点！`, 'info');
+        } else if (activeEnvironmentalEvent.id === 'lucky_star') {
+            addCombatLog(`⭐ 幸运星降临：本场战斗英雄投掷硬币正面率提升 15%！`, 'info');
         }
     }
     
@@ -441,6 +521,13 @@ function setupCombatListeners() {
 
         // Calculate Coin Flip result with dynamic streak probabilities
         let headsChance = 0.50 - combatState.headsStreak * 0.01 + combatState.tailsStreak * 0.01;
+        
+        // Apply lucky star bonus
+        if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'lucky_star') {
+            headsChance += 0.15;
+            addCombatLog(`⭐ 【幸运星降临】好运眷顾！本回合硬币正面率提升 15%！`, 'info');
+        }
+
         headsChance = Math.max(0, Math.min(1, headsChance));
 
         let coin = Math.random() < headsChance ? 'heads' : 'tails';
@@ -478,7 +565,8 @@ function setupCombatListeners() {
                 sDiceValues.push(sRoll);
             }
             const sMaxVal = Math.max(...sDiceValues);
-            s.calculateClashPoints(sCoin, sMaxVal, activeEnvironmentalEvent ? (activeEnvironmentalEvent.summonAtkModifier || 0) : 0, player.type === 'archer');
+            const isFog = activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'fog';
+            s.calculateClashPoints(sCoin, sMaxVal, activeEnvironmentalEvent ? (activeEnvironmentalEvent.summonAtkModifier || 0) : 0, player.type === 'archer', isFog);
         });
 
         // Run animations
@@ -501,7 +589,9 @@ function setupCombatListeners() {
                 }
 
                 // Calculate final damage
-                const dmgCalc = player.calculateTurnDamage(coin, maxVal);
+                const playerAtkMod = activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'sunny' ? 1 : 0;
+                const isFog = activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'fog';
+                const dmgCalc = player.calculateTurnDamage(coin, maxVal, playerAtkMod, isFog);
                 combatState.turnDamageCalculated = dmgCalc;
 
                 addCombatLog(`🎲 我方投掷结果：硬币【${coin === 'heads' ? '正面' : '反面'}】，骰子 [${diceValues.join(', ')}]。`);
@@ -559,7 +649,8 @@ function setupCombatListeners() {
                 eDiceValues.push(eRoll);
             }
             const eMaxVal = Math.max(...eDiceValues);
-            e.calculateClashPoints(eCoin, eMaxVal);
+            const isFog = activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'fog';
+            e.calculateClashPoints(eCoin, eMaxVal, isFog);
             e.currentRoll.diceValues = eDiceValues; // Store all dice values for animation display
         });
 
@@ -619,6 +710,13 @@ function setupCombatListeners() {
                     } else {
                         addCombatLog(` 💥 拼点获胜！你对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
                         hitsDealt++;
+
+                        // Check thunderstorm bonus damage
+                        if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
+                            const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
+                            enemy.takeDamage(thunderDmg);
+                            addCombatLog(`   ⚡ 【雷霆风暴】降临！额外对 ${enemy.name} 造成了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
+                        }
                         
                         // Check Freeze mechanism
                         if (freezeMech && freezeMech.cooldown === 0 && Math.random() < 0.35) {
@@ -695,6 +793,13 @@ function setupCombatListeners() {
                     } else {
                         addCombatLog(`   💥 剑气击中 ${sweepEnemy.name}！造成了 ${sDmgResult.damageDealt} 点溅射伤害。`, 'damage-enemy');
                         hitsDealt++;
+
+                        // Check thunderstorm bonus damage
+                        if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
+                            const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
+                            sweepEnemy.takeDamage(thunderDmg);
+                            addCombatLog(`     ⚡ 【雷霆风暴】闪电击中 ${sweepEnemy.name}！额外追加了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
+                        }
                         
                         // Check Freeze on cleave
                         if (freezeMech && freezeMech.cooldown === 0 && Math.random() < 0.35) {
@@ -732,6 +837,14 @@ function setupCombatListeners() {
                             if (!dmgResult.dodged) {
                                 addCombatLog(`   💥 拼点获胜！凤凰对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点火焰伤害。`, 'damage-enemy');
                                 hitsDealt++;
+
+                                // Check thunderstorm bonus damage
+                                if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
+                                    const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
+                                    enemy.takeDamage(thunderDmg);
+                                    addCombatLog(`     ⚡ 【雷霆风暴】闪电击中 ${enemy.name}！额外追加了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
+                                }
+
                                 if (dmgResult.thornsDamage > 0) {
                                     s.takeDamage(dmgResult.thornsDamage);
                                     addCombatLog(`     🌵 凤凰受到 ${dmgResult.thornsDamage} 点荆棘反伤。`, 'damage-player');
@@ -761,8 +874,15 @@ function setupCombatListeners() {
                             if (dmgResult.dodged) {
                                 addCombatLog(`   💨 ${enemy.name} 闪避了 ${s.name} 的扑击。`);
                             } else {
-                                addCombatLog(`   💥 拼点获胜！${s.name} 对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
-                                hitsDealt++;
+                                 addCombatLog(`   💥 拼点获胜！${s.name} 对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
+                                 hitsDealt++;
+
+                                 // Check thunderstorm bonus damage
+                                 if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
+                                     const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
+                                     enemy.takeDamage(thunderDmg);
+                                     addCombatLog(`     ⚡ 【雷霆风暴】闪电击中 ${enemy.name}！额外追加了 ${thunderDmg} 点真实雷击伤害。`, 'damage-enemy');
+                                 }
                                 if (dmgResult.thornsDamage > 0) {
                                     s.takeDamage(dmgResult.thornsDamage);
                                     addCombatLog(`     🌵 ${s.name} 受到 ${dmgResult.thornsDamage} 点荆棘反伤。`, 'damage-player');
@@ -817,6 +937,19 @@ function setupCombatListeners() {
                     if (ePassiveLog) addCombatLog(ePassiveLog);
                 }
             });
+
+            // Volcano end of turn damage
+            if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'volcano') {
+                const volcanoDamage = activeEnvironmentalEvent.volcanoDamage;
+                player.takeDamage(volcanoDamage);
+                addCombatLog(`🌋 【火山爆发】熔岩四溅！你受到了 ${volcanoDamage} 点真实火焰伤害。`, 'damage-player');
+                currentEnemies.forEach(e => {
+                    if (e.currentHp > 0) {
+                        e.currentHp = Math.max(0, e.currentHp - volcanoDamage);
+                        addCombatLog(`🌋 【火山爆发】熔岩四溅！${e.name} 受到了 ${volcanoDamage} 点真实火焰伤害。`, 'damage-enemy');
+                    }
+                });
+            }
 
             // Reset round states
             const hasBurn = player.mechanisms.find(m => m.id === 'mech_burn');
@@ -1119,6 +1252,7 @@ function setupGameOverListeners() {
         currentEnemies = [];
         completedLevels = new Set();
         currentLocation = 'flag';
+        activeEnvironmentalEvent = null;
         
         showScreen('select-screen');
         setupDifficultySelector(); // Refresh dropdown options to reflect newly unlocked states

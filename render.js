@@ -146,6 +146,19 @@ export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect,
     }
     getEl('combat-stage-tag').textContent = `第 ${player.level} 关 - ${enemies[0].isBoss ? '领主首领' : '普通怪物'}${envText}`;
 
+    // Weather Banner Expansion
+    const banner = getEl('combat-weather-banner');
+    if (banner) {
+        if (activeEnvEvent) {
+            getEl('weather-banner-icon').textContent = activeEnvEvent.icon || '🌌';
+            getEl('weather-banner-name').textContent = `特殊事件：${activeEnvEvent.name}`;
+            getEl('weather-banner-desc').textContent = activeEnvEvent.desc;
+            banner.classList.add('expanded');
+        } else {
+            banner.classList.remove('expanded');
+        }
+    }
+
     // Player Card
     getEl('player-combat-name').textContent = player.name;
     const playerHpPct = Math.max(0, (player.currentHp / player.maxHp) * 100);
@@ -483,4 +496,34 @@ export function showMysteryResult(text, onFinish) {
     const newExitBtn = exitBtn.cloneNode(true);
     exitBtn.replaceWith(newExitBtn);
     newExitBtn.addEventListener('click', onFinish);
+}
+
+export function showWeatherToast(event) {
+    // Remove any existing weather toast first
+    const existing = document.querySelector('.weather-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'weather-toast glass';
+    toast.innerHTML = `
+        <div class="weather-toast-icon">${event.icon}</div>
+        <div class="weather-toast-content">
+            <h3 class="weather-toast-title">特殊环境事件：${event.name}</h3>
+            <p class="weather-toast-desc">${event.desc}</p>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.add('visible');
+    }, 50);
+    
+    // Remove after 3.5s
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => {
+            toast.remove();
+        }, 500);
+    }, 3500);
 }
