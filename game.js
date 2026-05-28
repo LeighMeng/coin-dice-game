@@ -318,6 +318,39 @@ function startCombatForLevel(level) {
     });
 
     // Reset Combat States
+    combatState.hasUsedMask = false;
+    combatState.hasUsedSacrifice = false;
+    combatState.sacrificedMaxHpTotal = 0;
+    player.shield = 0;
+
+    if (player.originalType === 'maskmaster') {
+        if (player.type !== 'maskmaster') {
+            if (player.type === 'dicemaster') {
+                player.diceCount = Math.max(1, player.diceCount - 1);
+            }
+            player.type = 'maskmaster';
+        }
+        
+        // Reset skills UI elements
+        getEl('maskmaster-skills-container').classList.remove('hidden');
+        getEl('mask-choices-container').classList.add('hidden');
+        
+        const maskBtn = getEl('mask-skill-btn');
+        maskBtn.disabled = false;
+        maskBtn.classList.remove('disabled');
+        maskBtn.textContent = '🎭 假面变身';
+        
+        const shieldBtn = getEl('shield-skill-btn');
+        shieldBtn.disabled = false;
+        shieldBtn.classList.remove('disabled');
+        shieldBtn.textContent = '🛡️ 献祭血契';
+    } else {
+        const maskCont = getEl('maskmaster-skills-container');
+        const choicesCont = getEl('mask-choices-container');
+        if (maskCont) maskCont.classList.add('hidden');
+        if (choicesCont) choicesCont.classList.add('hidden');
+    }
+
     combatState.turn = 1;
     combatState.hasRolled = false;
     combatState.hasPlayerRolled = false;
@@ -500,6 +533,74 @@ function handleTargetSelection(index) {
 }
 
 function setupCombatListeners() {
+    // Mask Master "Mask" transform toggle Choices UI
+    getEl('mask-skill-btn').addEventListener('click', () => {
+        if (player.originalType !== 'maskmaster' || combatState.hasUsedMask) return;
+        getEl('mask-choices-container').classList.toggle('hidden');
+    });
+
+    // Mask Master choosing which character to mimic
+    document.querySelectorAll('.mask-choice-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if (combatState.hasUsedMask) return;
+            const targetType = e.target.getAttribute('data-target');
+            
+            combatState.hasUsedMask = true;
+            player.type = targetType;
+            
+            // Apply corresponding passive changes
+            if (targetType === 'dicemaster') {
+                player.diceCount += 1;
+                addCombatLog(`🎭 【假面变身】变身为【骰子大师】！获得额外 1 个骰子！`, 'important');
+            } else if (targetType === 'knight') {
+                addCombatLog(`🎭 【假面变身】变身为【骑士】！回合结束时受伤会恢复生命值！`, 'important');
+            } else if (targetType === 'mage') {
+                player.mageForm = 'light';
+                // Show mage form switch button container
+                getEl('mage-toggle-container').classList.remove('hidden');
+                addCombatLog(`🎭 【假面变身】变身为【光暗法师】！可以使用光/暗形态切换！`, 'important');
+            } else if (targetType === 'archer') {
+                addCombatLog(`🎭 【假面变身】变身为【风行弓箭手】！随从攻击力大于5时，伤害加1！`, 'important');
+            }
+            
+            getEl('mask-choices-container').classList.add('hidden');
+            const maskBtn = getEl('mask-skill-btn');
+            maskBtn.disabled = true;
+            maskBtn.classList.add('disabled');
+            maskBtn.textContent = `🎭 变身为: ${player.getDefaultName(targetType)}`;
+            
+            updateCombatUI();
+        });
+    });
+
+    // Mask Master "Sacrifice" Shield skill
+    getEl('shield-skill-btn').addEventListener('click', () => {
+        if (player.originalType !== 'maskmaster' || combatState.hasUsedSacrifice) return;
+        combatState.hasUsedSacrifice = true;
+        
+        // Sacrifice 5% max HP, rounded, min 1
+        const sacrificeAmount = Math.max(1, Math.round(player.maxHp * 0.05));
+        
+        player.maxHp = Math.max(1, player.maxHp - sacrificeAmount);
+        combatState.sacrificedMaxHpTotal = (combatState.sacrificedMaxHpTotal || 0) + sacrificeAmount;
+        
+        if (player.currentHp > player.maxHp) {
+            player.currentHp = player.maxHp;
+        }
+        
+        const shieldGained = sacrificeAmount * 5;
+        player.shield = (player.shield || 0) + shieldGained;
+        
+        addCombatLog(`🛡️ 【献祭血契】你牺牲了 ${sacrificeAmount} 点最大生命上限，换取了五倍的护盾：${shieldGained} 点！`, 'important');
+        
+        const shieldBtn = getEl('shield-skill-btn');
+        shieldBtn.disabled = true;
+        shieldBtn.classList.add('disabled');
+        shieldBtn.textContent = '🛡️ 已献祭';
+        
+        updateCombatUI();
+    });
+
     // Mage toggle form action
     getEl('mage-switch-btn').addEventListener('click', () => {
         if (player.type !== 'mage' || combatState.hasPlayerRolled) return;
@@ -1017,6 +1118,23 @@ function triggerVictory() {
         player.maxHp += combatState.appliedMaxHpDebuff;
         addCombatLog(`❄️ 【暴风雪】已离去：最大生命值上限恢复了 ${combatState.appliedMaxHpDebuff} 点！`, 'info');
     }
+
+    // Restore player's maxHp from 假面大师 sacrifice
+    if (combatState.sacrificedMaxHpTotal > 0) {
+        player.maxHp += combatState.sacrificedMaxHpTotal;
+        addCombatLog(`🎭 【献祭血契】效果结束：牺牲的最大生命值上限恢复了 ${combatState.sacrificedMaxHpTotal} 点！`, 'info');
+        combatState.sacrificedMaxHpTotal = 0;
+    }
+    
+    // Revert Mask Master transformation
+    if (player.originalType === 'maskmaster' && player.type !== 'maskmaster') {
+        if (player.type === 'dicemaster') {
+            player.diceCount = Math.max(1, player.diceCount - 1);
+        }
+        player.type = 'maskmaster';
+        addCombatLog(`🎭 战斗结束：你卸下了面具，变回了【假面大师】。`, 'info');
+    }
+    player.shield = 0;
     
     // Clean environmental status
     activeEnvironmentalEvent = null;
@@ -1253,6 +1371,7 @@ function setupGameOverListeners() {
         completedLevels = new Set();
         currentLocation = 'flag';
         activeEnvironmentalEvent = null;
+        combatState.sacrificedMaxHpTotal = 0;
         
         showScreen('select-screen');
         setupDifficultySelector(); // Refresh dropdown options to reflect newly unlocked states

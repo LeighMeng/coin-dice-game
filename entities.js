@@ -2,7 +2,8 @@
 
 export class Player {
     constructor(type, name = "") {
-        this.type = type; // 'random', 'dicemaster', 'knight', 'mage'
+        this.type = type; // 'random', 'dicemaster', 'knight', 'mage', 'maskmaster'
+        this.originalType = type;
         this.name = name || this.getDefaultName(type);
         this.gold = 0;
         this.level = 1; // 1 to 36
@@ -15,6 +16,7 @@ export class Player {
         this.mechanisms = []; // Passive card effects
         this.halvedDamageNextTurn = false;
         this.tempAttackBonus = 0; // Stacks from Burn mechanism
+        this.shield = 0;
         
         // Mage specific
         this.mageForm = 'light'; // 'light' or 'dark'
@@ -26,6 +28,7 @@ export class Player {
             case 'knight': return "骑士";
             case 'mage': return "光暗法师";
             case 'archer': return "风行弓箭手";
+            case 'maskmaster': return "假面大师";
             case 'random': return "命运浪人";
             default: return "冒险者";
         }
@@ -53,6 +56,10 @@ export class Player {
             case 'archer':
                 this.maxHp = 18;
                 this.attack = 7;
+                break;
+            case 'maskmaster':
+                this.maxHp = 10;
+                this.attack = 3;
                 break;
             case 'random':
             default:
@@ -177,7 +184,17 @@ export class Player {
     }
 
     takeDamage(amount) {
-        this.currentHp = Math.max(0, this.currentHp - amount);
+        let finalDamage = amount;
+        if (this.shield > 0) {
+            if (amount <= this.shield) {
+                this.shield -= amount;
+                finalDamage = 0;
+            } else {
+                finalDamage = amount - this.shield;
+                this.shield = 0;
+            }
+        }
+        this.currentHp = Math.max(0, this.currentHp - finalDamage);
         return this.currentHp;
     }
 }

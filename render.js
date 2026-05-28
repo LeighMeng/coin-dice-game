@@ -182,6 +182,9 @@ export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect,
     if (player.halvedDamageNextTurn) {
         playerBuffsEl.innerHTML += `<span class="buff-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">虚弱：伤害减半</span>`;
     }
+    if (player.shield > 0) {
+        playerBuffsEl.innerHTML += `<span class="buff-badge shield-badge">🛡️ 护盾 ${player.shield}</span>`;
+    }
     player.mechanisms.forEach(mech => {
         playerBuffsEl.innerHTML += `<span class="buff-badge">🛡️ ${mech.name}</span>`;
     });
