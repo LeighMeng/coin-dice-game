@@ -12,12 +12,14 @@ let completedLevels = new Set();
 let currentLocation = 'flag'; // 'flag', 'level_1', 'fork_1', 'level_2', ...
 let maxUnlockedDifficulty = localStorage.getItem('maxUnlockedDifficulty') || 'easy';
 let selectedDifficulty = 'easy';
+let activeEnvironmentalEvent = null;
 let combatState = {
     turn: 1,
     hasRolled: false,
     hasPlayerRolled: false,
     hasEnemyRolled: false,
     coinResult: null,
+    appliedMaxHpDebuff: 0, // Track blizzard HP penalty
     diceValues: null,
     maxDiceValue: 0,
     turnDamageCalculated: null,
@@ -183,6 +185,23 @@ function startCombatForLevel(level) {
     player.level = level;
     currentEnemies = generateMonstersForLevel(level);
     
+    // Apply environmental wings of fury extra monster
+    if (activeEnvironmentalEvent && activeEnvironmentalEvent.extraMonsterCount > 0) {
+        const normalMechanisms = [
+            { id: 'thorns', name: '荆棘', desc: '反弹25%受到的伤害给攻击者。' },
+            { id: 'regen', name: '再生', desc: '每回合结束时恢复5%的最大生命值。' },
+            { id: 'dodge', name: '闪避', desc: '有20%的几率完全闪避该次攻击。' },
+            { id: 'vampire', name: '吸血', desc: '攻击造成伤害的50%转化为自身生命值。' },
+            { id: 'weakness', name: '虚弱', desc: '攻击时有30%几率降低玩家1点基础攻击，持续1回合。' }
+        ];
+        const monsterNames = ["绿皮史莱姆", "洞穴蝙蝠", "蛮荒哥布林", "骷髅弓箭手", "深渊爬行者", "亡灵巫师", "熔岩史莱姆", "嗜血豺狼人", "石雕守卫", "暗影幽灵"];
+        const name = monsterNames[Math.floor(Math.random() * monsterNames.length)] + " (支援)";
+        const hp = Math.floor((12 + level * 3.5) * 0.6);
+        const atk = Math.floor((1.5 + level * 0.3) * 0.8);
+        const selectedMechs = [normalMechanisms[Math.floor(Math.random() * normalMechanisms.length)]];
+        currentEnemies.push(new Monster(name, hp, atk, selectedMechs, false));
+    }
+    
     // Scale and enhance monster stats based on selectedDifficulty
     currentEnemies.forEach(enemy => {
         if (selectedDifficulty === 'easy') {
@@ -236,9 +255,20 @@ function startCombatForLevel(level) {
     combatState.isPlayerTurn = true;
     combatState.headsStreak = 0;
     combatState.tailsStreak = 0;
+    combatState.appliedMaxHpDebuff = 0;
     // Reset temporary attack bonuses from Burn
     player.tempAttackBonus = 0;
     combatState.nextTurnAtkBonus = 0;
+    
+    // Apply environmental blizzard HP penalty
+    if (activeEnvironmentalEvent && activeEnvironmentalEvent.tempMaxHpDebuff > 0) {
+        const debuff = activeEnvironmentalEvent.tempMaxHpDebuff;
+        combatState.appliedMaxHpDebuff = debuff;
+        player.maxHp = Math.max(10, player.maxHp - debuff);
+        if (player.currentHp > player.maxHp) {
+            player.currentHp = player.maxHp;
+        }
+    }
     
     // Don't overwrite doubleGold if it was set externally (e.g. by Mystery Ambush)
     if (!combatState.mysteryAmbush) {
@@ -259,6 +289,17 @@ function startCombatForLevel(level) {
     }
 
     addCombatLog(`⚔️ 战斗开始！你进入了第 ${level} 关 (${getDifficultyName(selectedDifficulty)}难度)。`, 'important');
+    if (activeEnvironmentalEvent) {
+        addCombatLog(`🌌 【环境天气】当前战场处于【${activeEnvironmentalEvent.name}】状态！`, 'important');
+        if (activeEnvironmentalEvent.id === 'storm') {
+            addCombatLog(`🌧️ 暴风雨呼啸：本场战斗所有召唤物的攻击力 -1！`, 'damage-player');
+        } else if (activeEnvironmentalEvent.id === 'blizzard') {
+            addCombatLog(`❄️ 暴风雪肆虐：本场战斗你的最大生命值上限临时 -10！`, 'damage-player');
+        } else if (activeEnvironmentalEvent.id === 'wings_of_fury') {
+            addCombatLog(`🦅 狂暴之翼：怪物数量本回合 +1，但本场战斗你的召唤物攻击力 +1！`, 'info');
+        }
+    }
+    
     if (currentEnemies[0].isBoss) {
         addCombatLog(`⚠️ 领主警告：【${currentEnemies[0].name}】降临！它带有 ${currentEnemies[0].mechanisms.length} 个特殊机制！`, 'damage-player');
     } else {
@@ -301,7 +342,7 @@ function addRandomMechanismsToMonster(monster, count, isBossLevel) {
 
 function updateCombatUI() {
     renderHUD(player);
-    renderCombat(player, currentEnemies, combatState.activeTargetIndex, handleTargetSelection);
+    renderCombat(player, currentEnemies, combatState.activeTargetIndex, handleTargetSelection, activeEnvironmentalEvent);
     
     // Roll / Attack button toggling
     const rollBtn = getEl('roll-btn');
@@ -429,7 +470,7 @@ function setupCombatListeners() {
                 sDiceValues.push(sRoll);
             }
             const sMaxVal = Math.max(...sDiceValues);
-            s.calculateClashPoints(sCoin, sMaxVal);
+            s.calculateClashPoints(sCoin, sMaxVal, activeEnvironmentalEvent ? (activeEnvironmentalEvent.summonAtkModifier || 0) : 0);
         });
 
         // Run animations
@@ -823,6 +864,16 @@ function hasAliveEnemies() {
 function triggerVictory() {
     addCombatLog(`🎉 胜利！所有敌方怪物已被消灭。`, 'info');
     
+    // Restore player's maxHp from blizzard debuff
+    if (combatState.appliedMaxHpDebuff > 0) {
+        player.maxHp += combatState.appliedMaxHpDebuff;
+        addCombatLog(`❄️ 【暴风雪】已离去：最大生命值上限恢复了 ${combatState.appliedMaxHpDebuff} 点！`, 'info');
+    }
+    
+    // Clean environmental status
+    activeEnvironmentalEvent = null;
+    combatState.appliedMaxHpDebuff = 0;
+    
     // Gold rewards: Level 1-35 is standard, Bosses are high
     let baseGold = player.level * 2 + 5;
     if (player.level % 6 === 0) {
@@ -959,6 +1010,7 @@ function enterMysteryLane() {
             // Initiate ambush combat
             combatState.doubleGold = res.doubleGold;
             combatState.mysteryAmbush = true;
+            activeEnvironmentalEvent = res.environmentalEvent || null;
             
             showMysteryResult(`${res.log} 准备进入迎击战斗！`, () => {
                 // Ambush battle uses same level scale

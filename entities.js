@@ -179,9 +179,12 @@ export class Summon {
         this.currentRoll = null;
     }
 
-    calculateClashPoints(coinResult, maxDiceValue) {
-        let damage = coinResult === 'heads' ? (this.attack + maxDiceValue) : (this.attack - maxDiceValue);
-        let baseLog = `【${coinResult === 'heads' ? '正面' : '反面'}】基础攻击 ${this.attack} ${coinResult === 'heads' ? '+' : '-'} 骰子值 ${maxDiceValue} = ${damage}`;
+    calculateClashPoints(coinResult, maxDiceValue, atkModifier = 0) {
+        let baseAtk = this.attack + atkModifier;
+        let damage = coinResult === 'heads' ? (baseAtk + maxDiceValue) : (baseAtk - maxDiceValue);
+        
+        let modText = atkModifier !== 0 ? `(环境修正${atkModifier > 0 ? '+' : ''}${atkModifier})` : '';
+        let baseLog = `【${coinResult === 'heads' ? '正面' : '反面'}】基础攻击 ${baseAtk}${modText} ${coinResult === 'heads' ? '+' : '-'} 骰子值 ${maxDiceValue} = ${damage}`;
         
         let finalDamage = damage;
         let suffix = "";

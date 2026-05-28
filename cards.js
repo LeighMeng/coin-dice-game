@@ -635,6 +635,203 @@ export const MYSTERY_EVENTS = [
                 }
             }
         ]
+    },
+    {
+        id: 'storm',
+        name: '暴风雨',
+        desc: '突然乌云密布，雷电交加，狂风暴雨席卷了整片森林。潮湿冰冷的风雨拍打在身上，让你的召唤物感到极其不适。前方传来了怪物的低吼声。',
+        choices: [
+            {
+                text: '顶着暴风雨强行通过 (触发战斗，本场战斗召唤物攻击力 -1)',
+                effect: (player) => {
+                    return {
+                        success: true,
+                        triggerCombat: true,
+                        environmentalEvent: {
+                            id: 'storm',
+                            name: '暴风雨',
+                            icon: '🌧️',
+                            summonAtkModifier: -1
+                        },
+                        log: '你拔出武器，冒着狂风暴雨迎击怪物！'
+                    };
+                }
+            },
+            {
+                text: '寻找山洞避雨 (消耗 10 金币)',
+                effect: (player) => {
+                    if (player.gold >= 10) {
+                        player.gold -= 10;
+                        return { success: true, log: '你消耗了 10 金币找到一处避雨的山洞，安全度过了这场暴风雨。' };
+                    } else {
+                        return {
+                            success: false,
+                            triggerCombat: true,
+                            environmentalEvent: {
+                                id: 'storm',
+                                name: '暴风雨',
+                                icon: '🌧️',
+                                summonAtkModifier: -1
+                            },
+                            log: '你金币不足（需要 10 金币），无法租借避雨设施！你被淋得浑身冰凉，且被迫迎战怪物！'
+                        };
+                    }
+                }
+            }
+        ]
+    },
+    {
+        id: 'sunny',
+        name: '阳光明媚',
+        desc: '金色的微光洒在林间，微风轻拂。阳光温暖而明媚，是一个绝佳的前行日子。你感觉整个人都充满了活力。',
+        choices: [
+            {
+                text: '晒晒太阳并赶路 (恢复 10% 最大生命值)',
+                effect: (player) => {
+                    const healVal = Math.floor(player.maxHp * 0.1) || 2;
+                    const actual = player.heal(healVal);
+                    return { success: true, log: `温暖的阳光滋润着你，你惬意地舒展身心，恢复了 ${actual} 点生命值。` };
+                }
+            },
+            {
+                text: '在林间空地野餐 (消耗 5 金币，祈求命运卡牌)',
+                effect: (player) => {
+                    if (player.gold >= 5) {
+                        player.gold -= 5;
+                        const card = getRandomCards(1, player.difficulty || 'easy')[0];
+                        card.apply(player);
+                        return { success: true, log: `你消耗了 5 金币进行野餐，引来了林间神灵的注视，获得了命运赐予：【${card.name}】！` };
+                    } else {
+                        return { success: false, log: '你身上甚至掏不出 5 金币来买野餐干粮！只能摸摸干瘪的肚皮继续赶路。' };
+                    }
+                }
+            }
+        ]
+    },
+    {
+        id: 'blizzard',
+        name: '暴风雪',
+        desc: '气温骤降，刺骨的寒风夹杂着积雪呼啸而过。极寒正在无情地侵蚀你的体温与防御机能，使你的承受极限大幅度下降，而怪物的嚎叫在雪中回荡！',
+        choices: [
+            {
+                text: '强行突围 (触发战斗，本次战斗最大生命值上限临时减 10)',
+                effect: (player) => {
+                    return {
+                        success: true,
+                        triggerCombat: true,
+                        environmentalEvent: {
+                            id: 'blizzard',
+                            name: '暴风雪',
+                            icon: '❄️',
+                            tempMaxHpDebuff: 10
+                        },
+                        log: '你裹紧斗篷迎雪而上，迎战前方的怪物！'
+                    };
+                }
+            },
+            {
+                text: '生火防寒避雨 (消耗 15 金币)',
+                effect: (player) => {
+                    if (player.gold >= 15) {
+                        player.gold -= 15;
+                        return { success: true, log: '你消耗了 15 金币购买物资生火取暖，安全避开了暴风雪的中心区域。' };
+                    } else {
+                        return {
+                            success: false,
+                            triggerCombat: true,
+                            environmentalEvent: {
+                                id: 'blizzard',
+                                name: '暴风雪',
+                                icon: '❄️',
+                                tempMaxHpDebuff: 10
+                            },
+                            log: '你没有足够的金币（需要 15 金币）购买生火物资！你在寒风中冻得瑟瑟发抖，并被迫卷入战斗！'
+                        };
+                    }
+                }
+            }
+        ]
+    },
+    {
+        id: 'wings_of_fury',
+        name: '狂暴之翼',
+        desc: '天空中掠过成群的双翼猛禽，它们的戾鸣激怒了周围的怪物，引来了额外的支援！不过，狂暴的气流和猛禽的战意也同样刺激了你召唤物的斗志。',
+        choices: [
+            {
+                text: '正面迎战兽群 (触发战斗，怪物数 +1，但召唤物攻击力 +1)',
+                effect: (player) => {
+                    return {
+                        success: true,
+                        triggerCombat: true,
+                        environmentalEvent: {
+                            id: 'wings_of_fury',
+                            name: '狂暴之翼',
+                            icon: '🦅',
+                            extraMonsterCount: 1,
+                            summonAtkModifier: 1
+                        },
+                        log: '你无惧空中与陆地的包围，拔剑与它们战在一起！'
+                    };
+                }
+            },
+            {
+                text: '强行突围逃走 (消耗 6 点生命值)',
+                effect: (player) => {
+                    if (player.currentHp > 6) {
+                        player.takeDamage(6);
+                        return { success: true, log: '你冒着俯冲攻击的危险强行突围，在付出 6 点生命值被抓伤的代价后成功逃脱。' };
+                    } else {
+                        return {
+                            success: false,
+                            triggerCombat: true,
+                            environmentalEvent: {
+                                id: 'wings_of_fury',
+                                name: '狂暴之翼',
+                                icon: '🦅',
+                                extraMonsterCount: 1,
+                                summonAtkModifier: 1
+                            },
+                            log: '你的生命值过于微弱（不足 6 点），无法强行突围！只能在飞禽和怪物的包围中被迫应战！'
+                        };
+                    }
+                }
+            }
+        ]
+    },
+    {
+        id: 'town',
+        name: '遭遇。小镇',
+        desc: '森林的古道尽头意外浮现一座安静祥和的小镇，居民们听说你正在挑战命运之神，纷纷表示愿意助你一臂之力，甚至有英勇的村民请求随行！',
+        choices: [
+            {
+                text: '招募小镇卫兵 (召唤物：攻 3 / HP 14)',
+                effect: (player) => {
+                    const guard = new Summon('summon_town_guard', '小镇卫兵', 14, 3, '防守坚韧的小镇护卫兵。', 'guard');
+                    player.summons.push(guard);
+                    return { success: true, log: '【小镇卫兵】（HP: 14, 攻: 3）手持长盾加入了你的队伍，誓死守护你的安全！' };
+                }
+            },
+            {
+                text: '招募小镇猎手 (召唤物：攻 4 / HP 10)',
+                effect: (player) => {
+                    const hunter = new Summon('summon_town_hunter', '小镇猎手', 10, 4, '箭法高强的小镇精英猎人。', 'hunter');
+                    player.summons.push(hunter);
+                    return { success: true, log: '【小镇猎手】（HP: 10, 攻: 4）挽起长弓加入了你的队伍，誓将射穿前方阻碍！' };
+                }
+            },
+            {
+                text: '去旅店借宿休整 (消耗 10 金币，恢复 25 生命值)',
+                effect: (player) => {
+                    if (player.gold >= 10) {
+                        player.gold -= 10;
+                        const healed = player.heal(25);
+                        return { success: true, log: `你花费 10 金币入住温泉客栈，恢复了 ${healed} 点生命值。` };
+                    } else {
+                        return { success: false, log: '你没有 10 金币付房费，尴尬地被老板赶了出来，没能得到休息。' };
+                    }
+                }
+            }
+        ]
     }
 ];
 

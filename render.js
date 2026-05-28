@@ -138,9 +138,13 @@ export function renderHUD(player) {
 }
 
 // 3. Render Combat Screen
-export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect) {
+export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect, activeEnvEvent = null) {
     // Stage Tag
-    getEl('combat-stage-tag').textContent = `第 ${player.level} 关 - ${enemies[0].isBoss ? '领主首领' : '普通怪物'}`;
+    let envText = '';
+    if (activeEnvEvent) {
+        envText = ` (${activeEnvEvent.icon || '🌌'} ${activeEnvEvent.name})`;
+    }
+    getEl('combat-stage-tag').textContent = `第 ${player.level} 关 - ${enemies[0].isBoss ? '领主首领' : '普通怪物'}${envText}`;
 
     // Player Card
     getEl('player-combat-name').textContent = player.name;
@@ -180,6 +184,13 @@ export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect)
             card.className = 'summon-card';
             const hpPct = Math.max(0, (s.currentHp / s.maxHp) * 100);
             
+            let sAtk = s.attack;
+            let atkStyle = '';
+            if (activeEnvEvent && activeEnvEvent.summonAtkModifier) {
+                sAtk += activeEnvEvent.summonAtkModifier;
+                atkStyle = `style="color: ${activeEnvEvent.summonAtkModifier > 0 ? '#22c55e' : '#ef4444'}; font-weight: bold;"`;
+            }
+            
             let rollInfoHtml = '';
             if (s.currentRoll) {
                 const coinText = s.currentRoll.coinResult === 'heads' ? '正面🪙' : '反面🪙';
@@ -190,7 +201,7 @@ export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect)
                 <div style="font-size: 1.5rem;">🐾</div>
                 <div class="summon-details">
                     <div class="summon-header">
-                        <span>${s.name} (⚔️${s.attack})</span>
+                        <span ${atkStyle}>${s.name} (⚔️${sAtk})</span>
                         <span>${s.currentHp}/${s.maxHp}</span>
                     </div>
                     <div class="summon-hp-bar">
