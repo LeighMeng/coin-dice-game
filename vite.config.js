@@ -20,8 +20,8 @@ export default defineConfig({
         background_color: '#0f0a1e',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         lang: 'zh-CN',
         categories: ['games', 'entertainment'],
         icons: [
