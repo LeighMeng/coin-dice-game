@@ -330,7 +330,14 @@ function startCombatForLevel(level) {
             }
         }
 
-        // Apply +10% HP and +20% Attack scaling after the third boss (level > 18)
+        // Apply +50% HP and +20% Attack scaling after the second boss (level > 12)
+        if (level > 12) {
+            enemy.maxHp = Math.round(enemy.maxHp * 1.5);
+            enemy.currentHp = enemy.maxHp;
+            enemy.attack = Math.round(enemy.attack * 1.2);
+        }
+
+        // Apply additional +10% HP and +20% Attack scaling after the third boss (level > 18)
         if (level > 18) {
             enemy.maxHp = Math.round(enemy.maxHp * 1.1);
             enemy.currentHp = enemy.maxHp;
@@ -484,7 +491,8 @@ function addRandomMechanismsToMonster(monster, count, isBossLevel, level = 1) {
         { id: 'regen', name: '再生', desc: '每回合结束时恢复5%的最大生命值。' },
         { id: 'dodge', name: '闪避', desc: '有20%的几率完全闪避该次攻击。' },
         { id: 'vampire', name: '吸血', desc: '攻击造成伤害的50%转化为自身生命值。' },
-        { id: 'weakness', name: '虚弱', desc: '攻击时有30%几率降低玩家1点基础攻击，持续1回合。' }
+        { id: 'weakness', name: '虚弱', desc: '攻击时有30%几率降低玩家1点基础攻击，持续1回合。' },
+        { id: 'soul_drain', name: '灵魂侵蚀', desc: '拼点获胜时额外造成玩家最大生命值5%的灵魂伤害，直接穿透护盾。' }
     ];
     const bossMechanisms = [
         ...normalMechanisms,
@@ -944,6 +952,14 @@ function setupCombatListeners() {
                         addCombatLog(`   🧪 ${enemy.name} 散发出虚弱毒气！你下回合基础伤害将减半。`, 'damage-player');
                         player.halvedDamageNextTurn = true;
                     }
+
+                    // Monster Soul Drain mechanism — bypasses shield
+                    const hasSoulDrain = enemy.mechanisms.find(m => m.id === 'soul_drain');
+                    if (hasSoulDrain) {
+                        const soulDmg = Math.max(1, Math.floor(player.maxHp * 0.05));
+                        player.currentHp = Math.max(0, player.currentHp - soulDmg);
+                        addCombatLog(`   👻 【灵魂居消】${enemy.name} 居消了你的灵魂！消耗 ${soulDmg} 点生命（直接穿透护盾！）。`, 'damage-player');
+                    }
                 } else {
                     addCombatLog(` 🤝 双方势均力敌，未造成伤害。`);
                 }
@@ -960,6 +976,14 @@ function setupCombatListeners() {
                         enemy.heal(healVal);
                         audio.playHeal();
                         addCombatLog(`   🩸 ${enemy.name} 触发【吸血】：恢复了 ${healVal} 点生命值。`);
+                    }
+
+                    // Non-primary: soul drain also bypasses shield
+                    const hasSoulDrainSide = enemy.mechanisms.find(m => m.id === 'soul_drain');
+                    if (hasSoulDrainSide) {
+                        const soulDmg = Math.max(1, Math.floor(player.maxHp * 0.05));
+                        player.currentHp = Math.max(0, player.currentHp - soulDmg);
+                        addCombatLog(`   👻 【灵魂侵蚀】${enemy.name} 从侧翼侵蚀了你的灵魂！消耗 ${soulDmg} 点生命（直接穿透护盾！）。`, 'damage-player');
                     }
                 }
             }
