@@ -446,7 +446,21 @@
                 <p>最终生命上限：<span id="win-hp">85</span></p>
                 <p>最终基础攻击：<span id="win-atk">12</span></p>
             </div>
-            <button id="restart-win-btn" class="btn primary-btn">重新征服命运</button>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:16px;">
+                <button id="restart-win-btn" class="btn primary-btn">重新征服命运</button>
+                <button id="challenge-self-btn" class="btn secondary-btn hidden" style="border-color:rgba(239,68,68,0.6);color:#fca5a5;">⚔️ 挑战过去的自己</button>
+            </div>
+        </section>
+
+        <!-- Screen: Challenge-Self Mirror Battle -->
+        <section id="challenge-self-screen" class="screen">
+            <div style="font-size:3.5rem;text-align:center;margin:24px 0;" id="challenge-result-art">⚔️</div>
+            <h1 id="challenge-result-title" class="win-title">镜像对决</h1>
+            <p id="challenge-result-sub" class="win-subtitle">与过去的自己展开终极对决！</p>
+            <div class="win-stats glass" id="challenge-result-stats">
+                <p id="challenge-result-detail">对决进行中...</p>
+            </div>
+            <button id="challenge-restart-btn" class="btn primary-btn" style="margin-top:20px;">重新踏上征途</button>
         </section>
 
     </div>

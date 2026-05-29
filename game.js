@@ -1416,7 +1416,20 @@ function hasAliveEnemies() {
 // 4. Combat Victory Actions
 function triggerVictory() {
     addCombatLog(`🎉 胜利！所有敌方怪物已被消灭。`, 'info');
-    
+
+    // Mirror battle victory — show special result screen
+    if (combatState.isMirrorBattle) {
+        combatState.isMirrorBattle = false;
+        audio.playGameWin();
+        showScreen('challenge-self-screen');
+        getEl('challenge-result-art').textContent = '🏆';
+        getEl('challenge-result-title').textContent = '超越了自己！';
+        getEl('challenge-result-sub').textContent = '你击败了过去的自己，成长超越了从前！';
+        getEl('challenge-result-detail').textContent =
+            `你以 ${player.currentHp} / ${player.maxHp} HP 的状态击败了镜像。过去的自己已成为踏脚石，继续前行吧！`;
+        return;
+    }
+
     // 在遭遇小镇事件过后，卫兵和猎手将会离开队伍
     const hasVillagers = player.summons.some(s => s.id === 'summon_town_guard' || s.id === 'summon_town_hunter');
     if (hasVillagers) {
@@ -1653,6 +1666,18 @@ function exitNonCombatPath() {
 function triggerGameOver() {
     audio.stopBgm();
     audio.playGameOver();
+
+    // Mirror battle defeat — show special screen
+    if (combatState.isMirrorBattle) {
+        combatState.isMirrorBattle = false;
+        showScreen('challenge-self-screen');
+        getEl('challenge-result-art').textContent = '💣';
+        getEl('challenge-result-title').textContent = '购败了...';
+        getEl('challenge-result-sub').textContent = '你被过去的自己击败了';
+        getEl('challenge-result-detail').textContent = '过去的你更强大。继续成长，再超越自己吧！';
+        return;
+    }
+
     showScreen('gameover-screen');
     
     getEl('go-name').textContent = player.name;
@@ -1670,6 +1695,17 @@ function triggerGameWin() {
     getEl('win-dice').textContent = `${player.diceCount}个 (${player.diceMin}-${player.diceMax})`;
     getEl('win-hp').textContent = player.maxHp;
     getEl('win-atk').textContent = player.attack;
+
+    // Show challenge button if a previous snapshot exists
+    const prevSnap = localStorage.getItem('prevSelfSnapshot');
+    const challengeBtn = getEl('challenge-self-btn');
+    if (prevSnap) {
+        const snap = JSON.parse(prevSnap);
+        challengeBtn.classList.remove('hidden');
+        challengeBtn.textContent = `⚔️ 挑战过去的自己（${snap.name} · ${snap.maxHp}HP · 攻${snap.attack}）`;
+    } else {
+        challengeBtn.classList.add('hidden');
+    }
     
     // Unlock next difficulty progression
     const difficulties = ['easy', 'normal', 'hard', 'hell'];
@@ -1690,6 +1726,88 @@ function triggerGameWin() {
     completedLevels.add('castle');
     currentLocation = 'castle';
     renderMap(currentLocation, completedLevels);
+
+    // Save snapshot AFTER this win so next time we can challenge this run
+    savePlayerSnapshot();
+}
+
+// ─── Challenge Previous Self ────────────────────────────────────────────────
+
+/** Save the current player state as a "previous self" snapshot in localStorage */
+function savePlayerSnapshot() {
+    const snap = {
+        name: player.name,
+        type: player.originalType || player.type,
+        maxHp: player.maxHp,
+        attack: player.attack,
+        diceCount: player.diceCount,
+        diceMin: player.diceMin,
+        diceMax: player.diceMax,
+        difficulty: selectedDifficulty,
+        // Mechanism cards (id + name only, for display)
+        mechanisms: (player.mechanisms || []).map(m => ({ id: m.id, name: m.name, desc: m.desc || '' })),
+        // Equipment
+        weapon: player.equipment && player.equipment.weapon
+            ? { name: player.equipment.weapon.name, passive: player.equipment.weapon.passive }
+            : null,
+        armor: player.equipment && player.equipment.armor
+            ? { name: player.equipment.armor.name, passive: player.equipment.armor.passive }
+            : null,
+        // Summons (id, name, maxHp, attack, type)
+        summons: (player.summons || []).map(s => ({
+            id: s.id, name: s.name, maxHp: s.maxHp, attack: s.attack, type: s.type, description: s.description || ''
+        }))
+    };
+    localStorage.setItem('prevSelfSnapshot', JSON.stringify(snap));
+}
+
+/** Load and start the mirror battle against the saved snapshot */
+function startChallengeSelfBattle() {
+    const raw = localStorage.getItem('prevSelfSnapshot');
+    if (!raw) return;
+    const snap = JSON.parse(raw);
+
+    // Fully restore current player's HP and summons
+    player.currentHp = player.maxHp;
+    player.shield = 0;
+    player.summons.forEach(s => { s.currentHp = s.maxHp; });
+
+    // Build the Mirror Self as a special monster
+    const mirrorAtk = snap.attack;
+    const mirrorHp  = snap.maxHp;
+    const mirrorName = `镜像·${snap.name}`;
+
+    // Convert player mechanisms to monster mechanisms (reuse ids the combat engine understands)
+    const convertedMechs = (snap.mechanisms || []).map(m => ({ id: m.id, name: m.name, desc: m.desc }));
+
+    const mirror = new Monster(mirrorName, mirrorHp, mirrorAtk, convertedMechs, true);
+    mirror.diceCount = snap.diceCount;
+    mirror.diceMin   = snap.diceMin;
+    mirror.diceMax   = snap.diceMax;
+    mirror.isMirrorSelf = true;
+
+    // Restore snapshot summons as side monsters
+    const mirrorSummons = (snap.summons || []).map(s => {
+        const sm = new Monster(`镜像·${s.name}`, s.maxHp, s.attack, [], false);
+        sm.isMirrorSelf = true;
+        return sm;
+    });
+
+    currentEnemies = [mirror, ...mirrorSummons];
+    activeEnvironmentalEvent = null;
+    player.level = 37; // Special mirror level
+    combatState.isMirrorBattle = true;
+
+    // Switch to combat screen and start
+    showScreen('main-screen');
+    showActionView('combat-view');
+    addCombatLog(`⚔️ ═══ 【镜像对决】开始！ ═══`, 'important');
+    addCombatLog(`📜 你将面对过去的自己：【${mirrorName}】`, 'important');
+    addCombatLog(`❤️  你的HP已完全恢复。你的召唤物HP也已恢复。`, 'info');
+    addCombatLog(`👥 对手装备：武器【${snap.weapon ? snap.weapon.name : '无'}】/ 防具【${snap.armor ? snap.armor.name : '无'}】`, 'info');
+    addCombatLog(`🃏 对手机制：${snap.mechanisms.map(m => m.name).join('、') || '无'}`, 'info');
+    initCombatRound();
+    updateCombatUI();
 }
 
 function setupGameOverListeners() {
@@ -1706,6 +1824,7 @@ function setupGameOverListeners() {
         combatState.sacrificedMaxHpTotal = 0;
         combatState.appliedAtkDebuff = 0;
         combatState.appliedMaxHpDebuff = 0;
+        combatState.isMirrorBattle = false;
         
         showScreen('select-screen');
         setupDifficultySelector(); // Refresh dropdown options to reflect newly unlocked states
@@ -1720,6 +1839,12 @@ function setupGameOverListeners() {
 
     getEl('restart-game-btn').addEventListener('click', restartGame);
     getEl('restart-win-btn').addEventListener('click', restartGame);
+    getEl('challenge-restart-btn').addEventListener('click', restartGame);
+
+    // Challenge Self button
+    getEl('challenge-self-btn').addEventListener('click', () => {
+        startChallengeSelfBattle();
+    });
 }
 
 // Combat Console log outputs
