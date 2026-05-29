@@ -3,10 +3,10 @@
 import { Summon } from './entities.js';
 
 export const CARD_GRADES = {
-    R: { name: 'R级 (稀有)', color: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.6)' },
-    S: { name: 'S级 (超稀有)', color: '#a855f7', shadow: 'rgba(168, 85, 247, 0.6)' },
-    SS: { name: 'SS级 (史诗)', color: '#eab308', shadow: 'rgba(234, 179, 8, 0.6)' },
-    SSS: { name: 'SSS级 (传说)', color: '#ef4444', shadow: 'rgba(239, 68, 68, 0.8)' }
+    D: { name: 'D级 (普通)', color: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.6)' },
+    C: { name: 'C级 (稀有)', color: '#a855f7', shadow: 'rgba(168, 85, 247, 0.6)' },
+    B: { name: 'B级 (精英)', color: '#eab308', shadow: 'rgba(234, 179, 8, 0.6)' },
+    A: { name: 'A级 (传说)', color: '#ef4444', shadow: 'rgba(239, 68, 68, 0.8)' }
 };
 
 export const CARD_POOL = [
@@ -14,7 +14,7 @@ export const CARD_POOL = [
     {
         id: 'r_max_hp',
         name: '生命源泉',
-        grade: 'R',
+        grade: 'D',
         type: 'stat',
         desc: '最大生命值 +10，并恢复10点生命值。',
         apply: (player) => {
@@ -26,7 +26,7 @@ export const CARD_POOL = [
     {
         id: 'r_atk',
         name: '锋利之刃',
-        grade: 'R',
+        grade: 'D',
         type: 'stat',
         desc: '基础攻击力 +1。',
         apply: (player) => {
@@ -37,7 +37,7 @@ export const CARD_POOL = [
     {
         id: 'r_tails_shield',
         name: '反面护甲',
-        grade: 'R',
+        grade: 'D',
         type: 'mechanism',
         desc: '硬币为反面时，本回合额外获得 4 点临时护盾。',
         apply: (player) => {
@@ -48,7 +48,7 @@ export const CARD_POOL = [
     {
         id: 'r_summon_wolf',
         name: '召唤小狼',
-        grade: 'R',
+        grade: 'D',
         type: 'summon',
         desc: '召唤一只幽灵小狼 (15 HP, 2 攻击)。',
         apply: (player) => {
@@ -62,7 +62,7 @@ export const CARD_POOL = [
     {
         id: 's_max_hp',
         name: '泰坦之躯',
-        grade: 'S',
+        grade: 'C',
         type: 'stat',
         desc: '最大生命值 +18，并恢复18点生命值。',
         apply: (player) => {
@@ -74,7 +74,7 @@ export const CARD_POOL = [
     {
         id: 's_atk',
         name: '巨剑重击',
-        grade: 'S',
+        grade: 'C',
         type: 'stat',
         desc: '基础攻击力 +2。',
         apply: (player) => {
@@ -85,7 +85,7 @@ export const CARD_POOL = [
     {
         id: 's_dice_min',
         name: '幸运之底',
-        grade: 'S',
+        grade: 'C',
         type: 'mechanism',
         desc: '骰子最小点数 +1。',
         apply: (player) => {
@@ -96,7 +96,7 @@ export const CARD_POOL = [
     {
         id: 's_summon_golem',
         name: '召唤岩石傀儡',
-        grade: 'S',
+        grade: 'C',
         type: 'summon',
         desc: '召唤岩石傀儡 (35 HP, 1 攻击)，具有极高的防御生命。',
         apply: (player) => {
@@ -108,7 +108,7 @@ export const CARD_POOL = [
     {
         id: 's_burn',
         name: '热血燃烧',
-        grade: 'S',
+        grade: 'C',
         type: 'mechanism',
         desc: '每次成功对敌人造成伤害，下回合基础攻击力临时 +1 点（可叠加，持续1回合）。',
         apply: (player) => {
@@ -121,7 +121,7 @@ export const CARD_POOL = [
     {
         id: 'ss_max_hp',
         name: '星辰不灭',
-        grade: 'SS',
+        grade: 'B',
         type: 'stat',
         desc: '最大生命值 +30，并恢复30点生命值。',
         apply: (player) => {
@@ -133,7 +133,7 @@ export const CARD_POOL = [
     {
         id: 'ss_atk',
         name: '宇宙之力',
-        grade: 'SS',
+        grade: 'B',
         type: 'stat',
         desc: '基础攻击力 +3。',
         apply: (player) => {
@@ -144,7 +144,7 @@ export const CARD_POOL = [
     {
         id: 'ss_lucky_six',
         name: '天数六星',
-        grade: 'SS',
+        grade: 'B',
         type: 'mechanism',
         desc: '当投出最大骰子点数时，对所有敌方造成额外 5 点真实伤害。',
         apply: (player) => {
@@ -155,7 +155,7 @@ export const CARD_POOL = [
     {
         id: 'ss_summon_fairy',
         name: '召唤治愈花仙',
-        grade: 'SS',
+        grade: 'B',
         type: 'summon',
         desc: '召唤治愈花仙 (12 HP, 1 攻击)，每回合结束时恢复角色 3 点生命值。',
         apply: (player) => {
@@ -167,7 +167,7 @@ export const CARD_POOL = [
     {
         id: 'ss_sweeping_blade',
         name: '横扫之刃',
-        grade: 'SS',
+        grade: 'B',
         type: 'mechanism',
         desc: '拼点获胜时，除主要目标外，还会对额外最多 2 个随机存活且拼点失败的敌方造成等量伤害。',
         apply: (player) => {
@@ -180,7 +180,7 @@ export const CARD_POOL = [
     {
         id: 'sss_immortal',
         name: '不灭神魂',
-        grade: 'SSS',
+        grade: 'A',
         type: 'stat',
         desc: '最大生命值 +50，并完全恢复全部生命值。',
         apply: (player) => {
@@ -192,7 +192,7 @@ export const CARD_POOL = [
     {
         id: 'sss_sword_destiny',
         name: '宿命主宰之剑',
-        grade: 'SSS',
+        grade: 'A',
         type: 'stat',
         desc: '基础攻击力 +5。',
         apply: (player) => {
@@ -203,7 +203,7 @@ export const CARD_POOL = [
     {
         id: 'sss_fate_weaver',
         name: '命运编织者',
-        grade: 'SSS',
+        grade: 'A',
         type: 'mechanism',
         desc: '每场战斗的前 2 个回合，投掷硬币必为【正面】（光暗法师不受反面影响）。',
         apply: (player) => {
@@ -214,7 +214,7 @@ export const CARD_POOL = [
     {
         id: 'sss_summon_phoenix',
         name: '召唤炼狱凤凰',
-        grade: 'SSS',
+        grade: 'A',
         type: 'summon',
         desc: '召唤炼狱凤凰 (20 HP, 4 攻击)，每次攻击时对所有怪物造成伤害。',
         apply: (player) => {
@@ -226,7 +226,7 @@ export const CARD_POOL = [
     {
         id: 'sss_freeze',
         name: '寒冰之咬',
-        grade: 'SSS',
+        grade: 'A',
         type: 'mechanism',
         desc: '拼点获胜并造成伤害时，有 35% 几率将目标冰冻1回合（下回合无法行动），冰冻冷却时间为 3 回合。',
         apply: (player) => {
@@ -247,7 +247,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_frost_sword',
         name: '冰霜刃',
-        grade: 'S',
+        grade: 'C',
         slot: 'weapon',
         icon: '🗡️',
         desc: '拼点获胜并造成伤害时，有 30% 几率对目标施加【冰冻】状态，使其下回合无法行动。',
@@ -261,7 +261,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_burning_blade',
         name: '燃烧之刃',
-        grade: 'S',
+        grade: 'C',
         slot: 'weapon',
         icon: '🔥',
         desc: '拼点获胜并造成伤害时，对目标施加【灼烧】：此后每回合末受到 2 点真实伤害，持续 3 回合。',
@@ -275,7 +275,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_thunder_bow',
         name: '雷光弓',
-        grade: 'SS',
+        grade: 'B',
         slot: 'weapon',
         icon: '⚡',
         desc: '每次拼点获胜并造成伤害后，对目标额外造成 3 点真实雷击伤害（不致死）。',
@@ -289,7 +289,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_poison_dagger',
         name: '淬毒匕首',
-        grade: 'SS',
+        grade: 'B',
         slot: 'weapon',
         icon: '🗡️',
         desc: '拼点获胜时，有 50% 几率对目标施加【中毒】：每回合末受到 1 点真实伤害（不致死），持续 5 回合，可叠加层数。',
@@ -303,7 +303,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_soul_lance',
         name: '灵魂长矛',
-        grade: 'SSS',
+        grade: 'A',
         slot: 'weapon',
         icon: '🔱',
         desc: '拼点获胜时，额外造成目标当前生命值 5% 的真实伤害（不致死），可击穿所有防御。',
@@ -320,7 +320,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_dragon_armor',
         name: '龙鳞重甲',
-        grade: 'S',
+        grade: 'C',
         slot: 'armor',
         icon: '🐉',
         desc: '装备时最大生命值永久 +20 并立即恢复 20 点生命值。每场战斗开始时额外获得 5 点护盾。',
@@ -336,7 +336,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_fate_shield',
         name: '命运圆盾',
-        grade: 'S',
+        grade: 'C',
         slot: 'armor',
         icon: '🛡️',
         desc: '装备时骰子最小点数永久 +1，且每回合硬币为反面时额外获得 3 点护盾。',
@@ -351,7 +351,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_lucky_plate',
         name: '幸运板甲',
-        grade: 'SS',
+        grade: 'B',
         slot: 'armor',
         icon: '✨',
         desc: '装备时骰子数量永久 +1，但最大生命值 -10（最低保留 10）。骰子越多，幸运越盛！',
@@ -368,7 +368,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_feather_cloak',
         name: '轻盈斗篷',
-        grade: 'SS',
+        grade: 'B',
         slot: 'armor',
         icon: '🪶',
         desc: '装备时骰子最大点数 -1（最低为 2），但基础攻击力永久 +4，轻盈换取爆发！',
@@ -387,7 +387,7 @@ export const EQUIPMENT_POOL = [
     {
         id: 'eq_void_robe',
         name: '虚空法袍',
-        grade: 'SSS',
+        grade: 'A',
         slot: 'armor',
         icon: '🌌',
         desc: '装备时最大生命值 +15，骰子最小值 +2，骰子最大值 +1，全方位强化骰子运势。',
@@ -434,13 +434,13 @@ export function getRandomCards(count = 3, difficulty = 'easy') {
     const cards = [];
     const pool = getFilteredCardPool(difficulty);
     
-    // Weighted selection of grades: R: 79%, S: 15%, SS: 5%, SSS: 1%
+    // Weighted selection of grades: D: 79%, C: 15%, B: 5%, A: 1%
     for (let i = 0; i < count; i++) {
         const rand = Math.random();
-        let targetGrade = 'R';
-        if (rand < 0.01) targetGrade = 'SSS';
-        else if (rand < 0.06) targetGrade = 'SS';
-        else if (rand < 0.21) targetGrade = 'S';
+        let targetGrade = 'D';
+        if (rand < 0.01) targetGrade = 'A';
+        else if (rand < 0.06) targetGrade = 'B';
+        else if (rand < 0.21) targetGrade = 'C';
         
         const matchingCards = pool.filter(c => c.grade === targetGrade);
         if (matchingCards.length > 0) {
@@ -621,12 +621,12 @@ export function generateShopItems(level, difficulty = 'easy') {
         }
     });
 
-    // Item 4: High Rarity Card (R / S / SS / SSS)
+    // Item 4: High Rarity Card (D / C / B / A)
     const cardq = getQuality();
-    let cardGrade = 'R';
-    if (cardq === 3) cardGrade = 'S';
-    else if (cardq === 4) cardGrade = 'SS';
-    else if (cardq === 5) cardGrade = 'SSS';
+    let cardGrade = 'D';
+    if (cardq === 3) cardGrade = 'C';
+    else if (cardq === 4) cardGrade = 'B';
+    else if (cardq === 5) cardGrade = 'A';
 
     const filteredCardPool = getFilteredCardPool(difficulty);
     let cardPoolForGrade = filteredCardPool.filter(c => c.grade === cardGrade);
@@ -650,7 +650,7 @@ export function generateShopItems(level, difficulty = 'easy') {
     // Item 5: Random Equipment (Weapon or Armor)
     const eqPool = [...EQUIPMENT_POOL];
     const eqItem = eqPool[Math.floor(Math.random() * eqPool.length)];
-    const eqGradeMap = { R: 1, S: 2, SS: 3, SSS: 4 };
+    const eqGradeMap = { D: 1, C: 2, B: 3, A: 4 };
     const eqQuality = eqGradeMap[eqItem.grade] || 2;
     const eqCost = eqQuality * 18 + 5;
     items.push({
@@ -787,11 +787,11 @@ export const MYSTERY_EVENTS = [
         desc: '一个披着厚重斗篷的神秘人向你招手，希望跟你做个交易。',
         choices: [
             {
-                text: '用最大生命值换取随机S级卡片 (-5 最大HP)',
+                text: '用最大生命值换取随机C级卡片 (-5 最大HP)',
                 effect: (player) => {
                     player.maxHp = Math.max(10, player.maxHp - 5);
                     if (player.currentHp > player.maxHp) player.currentHp = player.maxHp;
-                    const sPool = CARD_POOL.filter(c => c.grade === 'S');
+                    const sPool = CARD_POOL.filter(c => c.grade === 'C');
                     const card = sPool[Math.floor(Math.random() * sPool.length)];
                     card.apply(player);
                     return { success: true, log: `你的最大生命值减少了 5 点，但神秘人塞给你一张秘卷：【${card.name}】！` };
@@ -802,7 +802,7 @@ export const MYSTERY_EVENTS = [
                 effect: (player) => {
                     if (player.gold >= 20) {
                         player.gold -= 20;
-                        const ssPool = CARD_POOL.filter(c => c.grade === 'SS');
+                        const ssPool = CARD_POOL.filter(c => c.grade === 'B');
                         const card = ssPool[Math.floor(Math.random() * ssPool.length)];
                         card.apply(player);
                         return { success: true, log: `你花费了 20 金币，买下了一本古老的卷轴：【${card.name}】！` };

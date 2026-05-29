@@ -616,6 +616,8 @@ function setupCombatListeners() {
                 addCombatLog(`🎭 【假面变身】变身为【光暗法师】！可以使用光/暗形态切换！`, 'important');
             } else if (targetType === 'archer') {
                 addCombatLog(`🎭 【假面变身】变身为【风行弓箭手】！随从攻击力大于5时，伤害加1！`, 'important');
+            } else if (targetType === 'soulmage') {
+                addCombatLog(`🎭 【假面变身】变身为【灵魂法师】！所有攻击附加最大HP 5% 灵魂伤害，召唤物附加 3%！`, 'important');
             }
             
             getEl('mask-choices-container').classList.add('hidden');

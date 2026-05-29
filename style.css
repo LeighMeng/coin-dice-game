@@ -971,64 +971,64 @@ p.game-subtitle {
 }
 
 /* Card Glow Colors */
-.card-grade-r {
+.card-grade-d {
     border-color: rgba(59, 130, 246, 0.4);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
-.card-grade-r:hover {
+.card-grade-d:hover {
     border-color: #3b82f6;
     box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
 }
-.card-grade-r .card-grade-tag {
+.card-grade-d .card-grade-tag {
     background: rgba(59, 130, 246, 0.2);
     border: 1px solid #3b82f6;
     color: #60a5fa;
 }
 
-.card-grade-s {
+.card-grade-c {
     border-color: rgba(168, 85, 247, 0.4);
     box-shadow: 0 4px 12px rgba(168, 85, 247, 0.1);
 }
-.card-grade-s:hover {
+.card-grade-c:hover {
     border-color: #a855f7;
     box-shadow: 0 0 18px rgba(168, 85, 247, 0.5);
 }
-.card-grade-s .card-grade-tag {
+.card-grade-c .card-grade-tag {
     background: rgba(168, 85, 247, 0.2);
     border: 1px solid #a855f7;
     color: #c084fc;
 }
 
-.card-grade-ss {
+.card-grade-b {
     border-color: rgba(234, 179, 8, 0.4);
     box-shadow: 0 4px 12px rgba(234, 179, 8, 0.1);
 }
-.card-grade-ss:hover {
+.card-grade-b:hover {
     border-color: #eab308;
     box-shadow: 0 0 22px rgba(234, 179, 8, 0.6);
 }
-.card-grade-ss .card-grade-tag {
+.card-grade-b .card-grade-tag {
     background: rgba(234, 179, 8, 0.2);
     border: 1px solid #eab308;
     color: #fde047;
 }
 
-.card-grade-sss {
+.card-grade-a {
     border-color: rgba(239, 68, 68, 0.5);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
-    animation: sssPulse 2.5s infinite alternate;
+    animation: aPulse 2.5s infinite alternate;
 }
-.card-grade-sss:hover {
+.card-grade-a:hover {
     border-color: #ef4444;
     box-shadow: 0 0 25px rgba(239, 68, 68, 0.8);
 }
-.card-grade-sss .card-grade-tag {
+.card-grade-a .card-grade-tag {
     background: rgba(239, 68, 68, 0.25);
     border: 1px solid #ef4444;
     color: #fca5a5;
 }
 
-@keyframes sssPulse {
+@keyframes aPulse {
     0% { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); }
     100% { box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
 }
