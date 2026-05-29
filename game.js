@@ -350,6 +350,9 @@ function startCombatForLevel(level) {
     combatState.hasUsedSacrifice = false;
     combatState.sacrificedMaxHpTotal = 0;
     combatState.shieldBearerSkillCooldown = 0; // 0 = ready
+    combatState.playerFrozenTurns = 0;
+    combatState.playerBurnTurns   = 0;
+    combatState.playerBurnDmg     = 4;
     player.shield = 0;
 
     if (player.originalType === 'maskmaster') {
@@ -505,7 +508,10 @@ function addRandomMechanismsToMonster(monster, count, isBossLevel, level = 1) {
         { id: 'dodge', name: '闪避', desc: '有20%的几率完全闪避该次攻击。' },
         { id: 'vampire', name: '吸血', desc: '攻击造成伤害的50%转化为自身生命值。' },
         { id: 'weakness', name: '虚弱', desc: '攻击时有30%几率降低玩家1点基础攻击，持续1回合。' },
-        { id: 'soul_drain', name: '灵魂侵蚀', desc: '拼点获胜时额外造成玩家最大生命值5%的灵魂伤害，直接穿透护盾。' }
+        { id: 'soul_drain', name: '灵魂侵蚀', desc: '拼点获胜时额外造成玩家最大生命值5%的灵魂伤害，直接穿透护盾。' },
+        { id: 'cleave', name: '横扫', desc: '拼点获胜时对玩家所有存活的召唤物造成等量伤害。' },
+        { id: 'ice', name: '寒冰', desc: '拼点获胜时30%几率使玩家下回合无法行动。' },
+        { id: 'monster_burn', name: '燃烧', desc: '拼点获胜时对玩家施加灼烧，每回合末造成4点真实伤害，持续3回合。' }
     ];
     const bossMechanisms = [
         ...normalMechanisms,
@@ -719,7 +725,22 @@ function setupCombatListeners() {
     // Roll Coin & Dice action (Player side)
     getEl('roll-btn').addEventListener('click', () => {
         if (combatState.hasPlayerRolled || !combatState.isPlayerTurn) return;
-        
+
+        // ❄️ Frozen check: skip player turn
+        if (combatState.playerFrozenTurns > 0) {
+            combatState.playerFrozenTurns--;
+            addCombatLog(`❄️ 【寒冰冰封】你被冰封，本回合无法行动！（剩余 ${combatState.playerFrozenTurns} 回合冰封）`, 'damage-player');
+            combatState.hasPlayerRolled = true;
+            combatState.turnDamageCalculated = { total: 0, log: '（冰封，无法攻击）' };
+            combatState.coinResult = 'tails';
+            combatState.maxDiceValue = 0;
+            getEl('roll-btn').classList.add('hidden');
+            getEl('enemy-roll-btn').classList.remove('hidden');
+            getEl('enemy-roll-btn').classList.add('animate-pulse');
+            updateCombatUI();
+            return;
+        }
+
         triggerAudioInit(); // Ensure AudioContext is active
         audio.playCoinFlip();
         
@@ -1019,6 +1040,34 @@ function setupCombatListeners() {
                         player.currentHp = Math.max(0, player.currentHp - soulDmg);
                         addCombatLog(`   👻 【灵魂居消】${enemy.name} 居消了你的灵魂！消耗 ${soulDmg} 点生命（直接穿透护盾！）。`, 'damage-player');
                     }
+
+                    // 横扫: damage all alive summons
+                    const hasCleave = enemy.mechanisms.find(m => m.id === 'cleave');
+                    if (hasCleave && player.summons.length > 0) {
+                        addCombatLog(`   ⚔️ 【横扫】${enemy.name} 扫荡全场！`, 'damage-player');
+                        player.summons.forEach(s => {
+                            if (s.currentHp > 0) {
+                                s.takeDamage(enemyPoints);
+                                addCombatLog(`     💥 ${s.name} 被横扫击中，承受了 ${enemyPoints} 点伤害。`, 'damage-player');
+                            }
+                        });
+                        player.summons = player.summons.filter(s => s.currentHp > 0);
+                    }
+
+                    // 寒冰: 30% freeze player next turn
+                    const hasIce = enemy.mechanisms.find(m => m.id === 'ice');
+                    if (hasIce && Math.random() < 0.30) {
+                        combatState.playerFrozenTurns = (combatState.playerFrozenTurns || 0) + 1;
+                        addCombatLog(`   ❄️ 【寒冰】${enemy.name} 冰封了你！下回合无法行动！`, 'damage-player');
+                    }
+
+                    // 燃烧: apply burn to player (4 dmg/turn for 3 turns)
+                    const hasMonsterBurn = enemy.mechanisms.find(m => m.id === 'monster_burn');
+                    if (hasMonsterBurn) {
+                        combatState.playerBurnTurns = 3;
+                        combatState.playerBurnDmg  = 4;
+                        addCombatLog(`   🔥 【燃烧】${enemy.name} 对你施放火焰！你一行放火，每回合末造成 4 点持续伤害，共 3 回合！`, 'damage-player');
+                    }
                 } else {
                     addCombatLog(` 🤝 双方势均力敌，未造成伤害。`);
                 }
@@ -1265,6 +1314,17 @@ function setupCombatListeners() {
                 });
             }
             // ───────────────────────────────────────────────────────────
+
+            // 🔥 Player Burn tick (from monster 燃烧 mechanism)
+            if (combatState.playerBurnTurns > 0) {
+                const bd = combatState.playerBurnDmg || 4;
+                player.currentHp = Math.max(1, player.currentHp - bd);
+                combatState.playerBurnTurns--;
+                addCombatLog(`   🔥 【展火燃烧】你受到 ${bd} 点持续燃烧伤害（剩余 ${combatState.playerBurnTurns} 回合）。`, 'damage-player');
+                if (combatState.playerBurnTurns === 0) {
+                    addCombatLog(`   💨 火焰熥灯，燃烧状态解除！`, 'info');
+                }
+            }
 
             // Volcano end of turn damage
             if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'volcano') {
