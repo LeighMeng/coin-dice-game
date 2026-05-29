@@ -185,6 +185,15 @@ export function renderCombat(player, enemies, activeTargetIndex, onTargetSelect,
     if (player.shield > 0) {
         playerBuffsEl.innerHTML += `<span class="buff-badge shield-badge">🛡️ 护盾 ${player.shield}</span>`;
     }
+    // Equipment badges
+    if (player.equipment.weapon) {
+        const w = player.equipment.weapon;
+        playerBuffsEl.innerHTML += `<span class="buff-badge" style="background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.35); color:#fca5a5;">${w.icon} ${w.name}</span>`;
+    }
+    if (player.equipment.armor) {
+        const a = player.equipment.armor;
+        playerBuffsEl.innerHTML += `<span class="buff-badge" style="background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.35); color:#93c5fd;">${a.icon} ${a.name}</span>`;
+    }
     player.mechanisms.forEach(mech => {
         playerBuffsEl.innerHTML += `<span class="buff-badge">🛡️ ${mech.name}</span>`;
     });
@@ -379,7 +388,12 @@ export function renderRewards(phase, choices, onChoiceSelected) {
             
             cardEl.innerHTML = `
                 <div class="card-grade-tag">${card.grade}级</div>
-                <div class="card-type-tag">${card.type === 'mechanism' ? '机制被动' : (card.type === 'summon' ? '召唤随从' : '属性提升')}</div>
+                <div class="card-type-tag">${
+                    card.type === 'mechanism' ? '机制被动' :
+                    card.type === 'summon'    ? '召唤随从' :
+                    card.type === 'equipment' ? (card.slot === 'weapon' ? '⚔️ 武器装备' : '🛡️ 防具装备') :
+                    '属性提升'
+                }</div>
                 <h4>${card.name}</h4>
                 <p>${card.desc}</p>
             `;

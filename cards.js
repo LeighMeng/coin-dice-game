@@ -236,6 +236,185 @@ export const CARD_POOL = [
     }
 ];
 
+// ─── Equipment System ─────────────────────────────────────────────────────────
+// Each item has: id, name, grade, slot ('weapon'|'armor'), desc, passive{}, apply()
+// Weapons trigger on-hit effects; Armors grant stat bonuses on equip.
+
+export const EQUIPMENT_POOL = [
+
+    // ══════════════ WEAPONS ══════════════
+
+    {
+        id: 'eq_frost_sword',
+        name: '冰霜刃',
+        grade: 'S',
+        slot: 'weapon',
+        icon: '🗡️',
+        desc: '拼点获胜并造成伤害时，有 30% 几率对目标施加【冰冻】状态，使其下回合无法行动。',
+        passive: { id: 'equip_frost', freezeChance: 0.30 },
+        apply: (player) => {
+            const old = player.equipment.weapon;
+            player.equipment.weapon = EQUIPMENT_POOL.find(e => e.id === 'eq_frost_sword');
+            return old ? `替换了旧武器【${old.name}】，装备了【冰霜刃】！` : `装备了武器【冰霜刃】！`;
+        }
+    },
+    {
+        id: 'eq_burning_blade',
+        name: '燃烧之刃',
+        grade: 'S',
+        slot: 'weapon',
+        icon: '🔥',
+        desc: '拼点获胜并造成伤害时，对目标施加【灼烧】：此后每回合末受到 2 点真实伤害，持续 3 回合。',
+        passive: { id: 'equip_burn', burnDamage: 2, burnDuration: 3 },
+        apply: (player) => {
+            const old = player.equipment.weapon;
+            player.equipment.weapon = EQUIPMENT_POOL.find(e => e.id === 'eq_burning_blade');
+            return old ? `替换了旧武器【${old.name}】，装备了【燃烧之刃】！` : `装备了武器【燃烧之刃】！`;
+        }
+    },
+    {
+        id: 'eq_thunder_bow',
+        name: '雷光弓',
+        grade: 'SS',
+        slot: 'weapon',
+        icon: '⚡',
+        desc: '每次拼点获胜并造成伤害后，对目标额外造成 3 点真实雷击伤害（不致死）。',
+        passive: { id: 'equip_thunder', thunderDmg: 3 },
+        apply: (player) => {
+            const old = player.equipment.weapon;
+            player.equipment.weapon = EQUIPMENT_POOL.find(e => e.id === 'eq_thunder_bow');
+            return old ? `替换了旧武器【${old.name}】，装备了【雷光弓】！` : `装备了武器【雷光弓】！`;
+        }
+    },
+    {
+        id: 'eq_poison_dagger',
+        name: '淬毒匕首',
+        grade: 'SS',
+        slot: 'weapon',
+        icon: '🗡️',
+        desc: '拼点获胜时，有 50% 几率对目标施加【中毒】：每回合末受到 1 点真实伤害（不致死），持续 5 回合，可叠加层数。',
+        passive: { id: 'equip_poison', poisonChance: 0.50, poisonDmg: 1, poisonDuration: 5 },
+        apply: (player) => {
+            const old = player.equipment.weapon;
+            player.equipment.weapon = EQUIPMENT_POOL.find(e => e.id === 'eq_poison_dagger');
+            return old ? `替换了旧武器【${old.name}】，装备了【淬毒匕首】！` : `装备了武器【淬毒匕首】！`;
+        }
+    },
+    {
+        id: 'eq_soul_lance',
+        name: '灵魂长矛',
+        grade: 'SSS',
+        slot: 'weapon',
+        icon: '🔱',
+        desc: '拼点获胜时，额外造成目标当前生命值 5% 的真实伤害（不致死），可击穿所有防御。',
+        passive: { id: 'equip_soul', hpRatioDmg: 0.05 },
+        apply: (player) => {
+            const old = player.equipment.weapon;
+            player.equipment.weapon = EQUIPMENT_POOL.find(e => e.id === 'eq_soul_lance');
+            return old ? `替换了旧武器【${old.name}】，装备了【灵魂长矛】！` : `装备了武器【灵魂长矛】！`;
+        }
+    },
+
+    // ══════════════ ARMORS ══════════════
+
+    {
+        id: 'eq_dragon_armor',
+        name: '龙鳞重甲',
+        grade: 'S',
+        slot: 'armor',
+        icon: '🐉',
+        desc: '装备时最大生命值永久 +20 并立即恢复 20 点生命值。每场战斗开始时额外获得 5 点护盾。',
+        passive: { id: 'equip_dragon', combatShield: 5 },
+        apply: (player) => {
+            const old = player.equipment.armor;
+            player.equipment.armor = EQUIPMENT_POOL.find(e => e.id === 'eq_dragon_armor');
+            player.maxHp += 20;
+            player.heal(20);
+            return old ? `替换了旧防具【${old.name}】，装备了【龙鳞重甲】！最大生命值 +20。` : `装备了防具【龙鳞重甲】！最大生命值 +20。`;
+        }
+    },
+    {
+        id: 'eq_fate_shield',
+        name: '命运圆盾',
+        grade: 'S',
+        slot: 'armor',
+        icon: '🛡️',
+        desc: '装备时骰子最小点数永久 +1，且每回合硬币为反面时额外获得 3 点护盾。',
+        passive: { id: 'equip_fate_shield', tailsShield: 3 },
+        apply: (player) => {
+            const old = player.equipment.armor;
+            player.equipment.armor = EQUIPMENT_POOL.find(e => e.id === 'eq_fate_shield');
+            player.diceMin = Math.min(player.diceMin + 1, player.diceMax);
+            return old ? `替换了旧防具【${old.name}】，装备了【命运圆盾】！骰子最小值 +1。` : `装备了防具【命运圆盾】！骰子最小值 +1。`;
+        }
+    },
+    {
+        id: 'eq_lucky_plate',
+        name: '幸运板甲',
+        grade: 'SS',
+        slot: 'armor',
+        icon: '✨',
+        desc: '装备时骰子数量永久 +1，但最大生命值 -10（最低保留 10）。骰子越多，幸运越盛！',
+        passive: { id: 'equip_lucky_plate' },
+        apply: (player) => {
+            const old = player.equipment.armor;
+            player.equipment.armor = EQUIPMENT_POOL.find(e => e.id === 'eq_lucky_plate');
+            player.diceCount += 1;
+            player.maxHp = Math.max(10, player.maxHp - 10);
+            if (player.currentHp > player.maxHp) player.currentHp = player.maxHp;
+            return old ? `替换了旧防具【${old.name}】，装备了【幸运板甲】！骰子数 +1，生命上限 -10。` : `装备了防具【幸运板甲】！骰子数 +1，生命上限 -10。`;
+        }
+    },
+    {
+        id: 'eq_feather_cloak',
+        name: '轻盈斗篷',
+        grade: 'SS',
+        slot: 'armor',
+        icon: '🪶',
+        desc: '装备时骰子最大点数 -1（最低为 2），但基础攻击力永久 +4，轻盈换取爆发！',
+        passive: { id: 'equip_feather' },
+        apply: (player) => {
+            const old = player.equipment.armor;
+            player.equipment.armor = EQUIPMENT_POOL.find(e => e.id === 'eq_feather_cloak');
+            if (player.diceMax > 2) {
+                player.diceMax -= 1;
+                if (player.diceMin > player.diceMax) player.diceMin = player.diceMax;
+            }
+            player.attack += 4;
+            return old ? `替换了旧防具【${old.name}】，装备了【轻盈斗篷】！骰子上限 -1，攻击力 +4。` : `装备了防具【轻盈斗篷】！骰子上限 -1，攻击力 +4。`;
+        }
+    },
+    {
+        id: 'eq_void_robe',
+        name: '虚空法袍',
+        grade: 'SSS',
+        slot: 'armor',
+        icon: '🌌',
+        desc: '装备时最大生命值 +15，骰子最小值 +2，骰子最大值 +1，全方位强化骰子运势。',
+        passive: { id: 'equip_void' },
+        apply: (player) => {
+            const old = player.equipment.armor;
+            player.equipment.armor = EQUIPMENT_POOL.find(e => e.id === 'eq_void_robe');
+            player.maxHp += 15;
+            player.heal(15);
+            player.diceMin = Math.min(player.diceMin + 2, player.diceMax);
+            player.diceMax += 1;
+            return old ? `替换了旧防具【${old.name}】，装备了【虚空法袍】！生命 +15，骰子全面强化。` : `装备了防具【虚空法袍】！生命 +15，骰子全面强化。`;
+        }
+    }
+];
+
+// Get random equipment cards (mix of weapons and armors)
+export function getRandomEquipment(count = 1) {
+    const pool = [...EQUIPMENT_POOL];
+    const result = [];
+    for (let i = 0; i < count && pool.length > 0; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        result.push(pool.splice(idx, 1)[0]);
+    }
+    return result;
+}
+
 // Filter card pool based on active difficulty settings
 export function getFilteredCardPool(difficulty = 'easy') {
     return CARD_POOL.filter(card => {
@@ -465,6 +644,24 @@ export function generateShopItems(level, difficulty = 'easy') {
         type: 'card',
         apply: (player) => {
             return shopCard.apply(player);
+        }
+    });
+
+    // Item 5: Random Equipment (Weapon or Armor)
+    const eqPool = [...EQUIPMENT_POOL];
+    const eqItem = eqPool[Math.floor(Math.random() * eqPool.length)];
+    const eqGradeMap = { R: 1, S: 2, SS: 3, SSS: 4 };
+    const eqQuality = eqGradeMap[eqItem.grade] || 2;
+    const eqCost = eqQuality * 18 + 5;
+    items.push({
+        name: `${eqItem.icon} ${eqItem.name} (${eqItem.grade}级 ${eqItem.slot === 'weapon' ? '武器' : '防具'})`,
+        desc: eqItem.desc,
+        cost: eqCost,
+        quality: eqQuality,
+        type: 'equipment',
+        slot: eqItem.slot,
+        apply: (player) => {
+            return eqItem.apply(player);
         }
     });
 

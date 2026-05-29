@@ -1,7 +1,7 @@
 // game.js
 
 import { Player, generateMonstersForLevel, Monster } from './entities.js';
-import { getRandomCards, getRandomDiceChoices, generateShopItems, getCampfireOptions, getRandomMysteryEvent } from './cards.js';
+import { getRandomCards, getRandomDiceChoices, generateShopItems, getCampfireOptions, getRandomMysteryEvent, EQUIPMENT_POOL } from './cards.js';
 import { getEl, renderMap, renderHUD, renderCombat, animateCoinFlip, animateDiceRoll, resetCoinAndDice, renderRewards, renderShop, renderCampfire, renderMysteryEvent, showMysteryResult, showWeatherToast } from './render.js';
 import { audio } from './audio.js';
 
@@ -98,7 +98,8 @@ let combatState = {
     mysteryAmbush: false,
     headsStreak: 0,
     tailsStreak: 0,
-    nextTurnAtkBonus: 0 // Track Burn mechanism stacks
+    nextTurnAtkBonus: 0, // Track Burn mechanism stacks
+    monsterStatusEffects: {} // { [monsterId]: { burnTurns, poisonStacks, ... } }
 };
 
 // 1. Initial Setup and Event Listeners
@@ -411,6 +412,15 @@ function startCombatForLevel(level) {
             player.currentHp = player.maxHp;
         }
     }
+
+    // Apply dragon armor combat shield at start of every battle
+    if (player.equipment.armor && player.equipment.armor.passive && player.equipment.armor.passive.combatShield > 0) {
+        player.shield += player.equipment.armor.passive.combatShield;
+        addCombatLog(`🐉 【龙鳞重甲】战斗开始，获得 ${player.equipment.armor.passive.combatShield} 点护盾！`, 'info');
+    }
+
+    // Reset monster status effects each battle
+    combatState.monsterStatusEffects = {};
     
     // Don't overwrite doubleGold if it was set externally (e.g. by Mystery Ambush)
     if (!combatState.mysteryAmbush) {
@@ -724,6 +734,12 @@ function setupCombatListeners() {
                 } else {
                     combatState.tailsStreak += 1;
                     combatState.headsStreak = 0;
+                    // Fate Shield armor passive: tails gives bonus shield
+                    if (player.equipment.armor && player.equipment.armor.passive && player.equipment.armor.passive.tailsShield > 0) {
+                        const sh = player.equipment.armor.passive.tailsShield;
+                        player.shield += sh;
+                        addCombatLog(`🛡️ 【命运圆盾】硬币反面！获得额外 ${sh} 点护盾！`, 'info');
+                    }
                 }
 
                 // Calculate final damage
@@ -863,6 +879,45 @@ function setupCombatListeners() {
                             freezeMech.cooldown = 4; // Set 3 turns cooldown (+1 decay at end of turn)
                             addCombatLog(`❄️ 【寒冰之咬】触发！${enemy.name} 被彻底冰封！下回合将无法行动！`, 'info');
                         }
+
+                        // ── Weapon Equipment Passives ─────────────────────
+                        if (player.equipment.weapon) {
+                            const wp = player.equipment.weapon.passive;
+                            const eid = enemy.id || enemy.name; // unique key per enemy
+                            if (!combatState.monsterStatusEffects[eid]) {
+                                combatState.monsterStatusEffects[eid] = { burnTurns: 0, poisonStacks: 0 };
+                            }
+                            const st = combatState.monsterStatusEffects[eid];
+
+                            // 🗡️ 冰霜刃: 30% freeze
+                            if (wp.id === 'equip_frost' && Math.random() < wp.freezeChance) {
+                                enemy.frozenTurns = (enemy.frozenTurns || 0) + 1;
+                                addCombatLog(`   ❄️ 【冰霜刃】触发！${enemy.name} 被冰冻，下回合无法行动！`, 'info');
+                            }
+                            // 🔥 燃烧之刃: apply burn stacks
+                            if (wp.id === 'equip_burn') {
+                                st.burnTurns = wp.burnDuration;
+                                addCombatLog(`   🔥 【燃烧之刃】触发！${enemy.name} 陷入【灼烧】状态，将持续受到 ${wp.burnDamage} 点伤害，共 ${wp.burnDuration} 回合！`, 'info');
+                            }
+                            // ⚡ 雷光弓: immediate thunder hit
+                            if (wp.id === 'equip_thunder') {
+                                const tDmg = wp.thunderDmg;
+                                enemy.currentHp = Math.max(1, enemy.currentHp - tDmg);
+                                addCombatLog(`   ⚡ 【雷光弓】触发！额外对 ${enemy.name} 造成 ${tDmg} 点真实雷击伤害！`, 'damage-enemy');
+                            }
+                            // 🗡️ 淬毒匕首: 50% poison stack
+                            if (wp.id === 'equip_poison' && Math.random() < wp.poisonChance) {
+                                st.poisonStacks += 1;
+                                addCombatLog(`   ☠️ 【淬毒匕首】触发！${enemy.name} 中毒层数 +1（当前 ${st.poisonStacks} 层），每回合末受到 ${wp.poisonDmg * st.poisonStacks} 点真实伤害！`, 'info');
+                            }
+                            // 🔱 灵魂长矛: 5% current HP true damage
+                            if (wp.id === 'equip_soul') {
+                                const sDmg = Math.max(1, Math.floor(enemy.currentHp * wp.hpRatioDmg));
+                                enemy.currentHp = Math.max(1, enemy.currentHp - sDmg);
+                                addCombatLog(`   🔱 【灵魂长矛】触发！抽取 ${enemy.name} 灵魂精华，造成 ${sDmg} 点真实伤害！`, 'damage-enemy');
+                            }
+                        }
+                        // ─────────────────────────────────────────────────
 
                         if (dmgResult.thornsDamage > 0) {
                             player.takeDamage(dmgResult.thornsDamage);
@@ -1088,6 +1143,32 @@ function setupCombatListeners() {
                 }
             });
 
+            // ── Weapon Status Effects: Burn & Poison tick ──────────────
+            if (player.equipment.weapon) {
+                const wp = player.equipment.weapon.passive;
+                currentEnemies.forEach(e => {
+                    if (e.currentHp <= 0) return;
+                    const eid = e.id || e.name;
+                    const st = combatState.monsterStatusEffects[eid];
+                    if (!st) return;
+
+                    // 🔥 灼烧 damage tick
+                    if (st.burnTurns > 0 && wp.id === 'equip_burn') {
+                        const bd = wp.burnDamage;
+                        e.currentHp = Math.max(1, e.currentHp - bd);
+                        st.burnTurns--;
+                        addCombatLog(`   🔥 【灼烧】${e.name} 受到 ${bd} 点燃烧伤害（剩余 ${st.burnTurns} 回合）。`, 'damage-enemy');
+                    }
+                    // ☠️ 中毒 damage tick
+                    if (st.poisonStacks > 0 && wp.id === 'equip_poison') {
+                        const pd = wp.poisonDmg * st.poisonStacks;
+                        e.currentHp = Math.max(1, e.currentHp - pd);
+                        addCombatLog(`   ☠️ 【中毒】${e.name} 受到 ${pd} 点毒素伤害（${st.poisonStacks} 层）。`, 'damage-enemy');
+                    }
+                });
+            }
+            // ───────────────────────────────────────────────────────────
+
             // Volcano end of turn damage
             if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'volcano') {
                 const volcanoDamage = activeEnvironmentalEvent.volcanoDamage;
@@ -1243,8 +1324,18 @@ function startDoubleChoiceRewards() {
     showActionView('reward-view');
     getEl('reward-title').textContent = `🎁 通关战利品 (关卡 ${player.level})`;
     
-    // Draft Choice 1: Upgrade/Mechanism Cards
-    const cards = getRandomCards(3);
+    // Draft Choice 1: Cards (with ~25% chance any slot is replaced by equipment)
+    const baseCards = getRandomCards(3);
+    const cards = baseCards.map(card => {
+        if (Math.random() < 0.25) {
+            // Replace with random equipment card
+            const eqPool = [...EQUIPMENT_POOL];
+            const eq = eqPool[Math.floor(Math.random() * eqPool.length)];
+            return { ...eq, type: 'equipment' };
+        }
+        return card;
+    });
+
     renderRewards(1, cards, (chosenCard) => {
         const standardSummonsCount = player.summons.filter(s => s.id !== 'summon_town_guard' && s.id !== 'summon_town_hunter').length;
         if (chosenCard.type === 'summon' && standardSummonsCount >= 3) {
@@ -1252,7 +1343,7 @@ function startDoubleChoiceRewards() {
             return;
         }
         const log = chosenCard.apply(player);
-        addCombatLog(`💎 选择了卡牌：【${chosenCard.name}】。${log}`);
+        addCombatLog(`💎 选择了${chosenCard.type === 'equipment' ? '装备' : '卡牌'}：【${chosenCard.name}】。${log}`);
         
         // Transition to Choice 2: Dice customizations
         const diceUpgrades = getRandomDiceChoices();

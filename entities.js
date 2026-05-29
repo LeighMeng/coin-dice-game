@@ -14,6 +14,7 @@ export class Player {
 
         this.summons = [];
         this.mechanisms = []; // Passive card effects
+        this.equipment = { weapon: null, armor: null }; // Equipment slots
         this.halvedDamageNextTurn = false;
         this.tempAttackBonus = 0; // Stacks from Burn mechanism
         this.shield = 0;
