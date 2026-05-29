@@ -144,6 +144,19 @@
                     </div>
                     <div class="char-passive">被动：每次攻击额外造成最大HP 5% 真实灵魂伤害 | 召唤物额外造成最大HP 3% 真实灵魂伤害（均穿透护盾）</div>
                 </div>
+
+                <!-- Shield Bearer -->
+                <div class="char-card glass" data-char="shieldbearer">
+                    <div class="char-icon">🛡️</div>
+                    <h3>护盾使者</h3>
+                    <p class="char-desc">以血肉铸成护盾的圣奕卫士，誓死守护。每3回合可以献出自身血量，换取坚不可摧的护盾壁垒。</p>
+                    <div class="char-stats">
+                        <span>HP: 25</span>
+                        <span>攻击: 3</span>
+                        <span>骰子: 1个 (1-6)</span>
+                    </div>
+                    <div class="char-passive">每3回合可用技能：产生当前生命15%的血耗，换取自身5%生命4倍的护盾</div>
+                </div>
             </div>
 
             <div class="name-input-container">
@@ -292,6 +305,11 @@
                                 <button id="mask-skill-btn" class="btn secondary-btn" style="flex: 1; padding: 10px; font-size: 0.85rem; border-color: rgba(168, 85, 247, 0.4);">🎭 假面变身</button>
                                 <button id="shield-skill-btn" class="btn secondary-btn" style="flex: 1; padding: 10px; font-size: 0.85rem; border-color: rgba(6, 182, 212, 0.4);">🛡️ 献祭血契</button>
                             </div>
+
+                            <!-- Shield Bearer Special Skill -->
+                            <div id="shieldbearer-skills-container" class="combat-actions hidden" style="margin-bottom: 10px; display: flex; gap: 8px; width: 100%;">
+                                <button id="shield-surge-btn" class="btn secondary-btn" style="flex: 1; padding: 10px; font-size: 0.85rem; border-color: rgba(6, 182, 212, 0.5); color: #67e8f9;">🛡️ 盾魂爆发 (冷却: 0回合)</button>
+                            </div>
                             
                             <!-- Mask choices sub-menu -->
                             <div id="mask-choices-container" class="hidden" style="margin-bottom: 10px; display: flex; gap: 5px; width: 100%; flex-wrap: wrap; justify-content: center;">
@@ -300,6 +318,7 @@
                                 <button class="btn secondary-btn mask-choice-btn" data-target="mage" style="font-size: 0.75rem; padding: 6px 10px; flex: 1; min-width: 60px;">☯️ 法师</button>
                                 <button class="btn secondary-btn mask-choice-btn" data-target="archer" style="font-size: 0.75rem; padding: 6px 10px; flex: 1; min-width: 60px;">🏹 弓手</button>
                                 <button class="btn secondary-btn mask-choice-btn" data-target="soulmage" style="font-size: 0.75rem; padding: 6px 10px; flex: 1; min-width: 60px;">👻 灵魂</button>
+                                <button class="btn secondary-btn mask-choice-btn" data-target="shieldbearer" style="font-size: 0.75rem; padding: 6px 10px; flex: 1; min-width: 60px;">🛡️ 护盾</button>
                             </div>
 
                             <div class="combat-actions">

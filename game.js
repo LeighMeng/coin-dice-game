@@ -349,6 +349,7 @@ function startCombatForLevel(level) {
     combatState.hasUsedMask = false;
     combatState.hasUsedSacrifice = false;
     combatState.sacrificedMaxHpTotal = 0;
+    combatState.shieldBearerSkillCooldown = 0; // 0 = ready
     player.shield = 0;
 
     if (player.originalType === 'maskmaster') {
@@ -362,6 +363,7 @@ function startCombatForLevel(level) {
         // Reset skills UI elements
         getEl('maskmaster-skills-container').classList.remove('hidden');
         getEl('mask-choices-container').classList.add('hidden');
+        getEl('shieldbearer-skills-container').classList.add('hidden');
         
         const maskBtn = getEl('mask-skill-btn');
         maskBtn.disabled = false;
@@ -372,11 +374,22 @@ function startCombatForLevel(level) {
         shieldBtn.disabled = false;
         shieldBtn.classList.remove('disabled');
         shieldBtn.textContent = '🛡️ 献祭血契';
+    } else if (player.originalType === 'shieldbearer') {
+        // Show Shield Bearer skill container
+        getEl('shieldbearer-skills-container').classList.remove('hidden');
+        getEl('maskmaster-skills-container').classList.add('hidden');
+        getEl('mask-choices-container').classList.add('hidden');
+        const surgeBtn = getEl('shield-surge-btn');
+        surgeBtn.disabled = false;
+        surgeBtn.classList.remove('disabled');
+        surgeBtn.textContent = '🛡️ 盾魂爆发 (冷却: 0回合)';
     } else {
         const maskCont = getEl('maskmaster-skills-container');
         const choicesCont = getEl('mask-choices-container');
+        const bearerCont = getEl('shieldbearer-skills-container');
         if (maskCont) maskCont.classList.add('hidden');
         if (choicesCont) choicesCont.classList.add('hidden');
+        if (bearerCont) bearerCont.classList.add('hidden');
     }
 
     combatState.turn = 1;
@@ -618,6 +631,15 @@ function setupCombatListeners() {
                 addCombatLog(`🎭 【假面变身】变身为【风行弓箭手】！随从攻击力大于5时，伤害加1！`, 'important');
             } else if (targetType === 'soulmage') {
                 addCombatLog(`🎭 【假面变身】变身为【灵魂法师】！所有攻击附加最大HP 5% 灵魂伤害，召唤物附加 3%！`, 'important');
+            } else if (targetType === 'shieldbearer') {
+                // Activate shield bearer skill
+                combatState.shieldBearerSkillCooldown = 0;
+                getEl('shieldbearer-skills-container').classList.remove('hidden');
+                const surgeBtn = getEl('shield-surge-btn');
+                surgeBtn.disabled = false;
+                surgeBtn.classList.remove('disabled');
+                surgeBtn.textContent = `🛡️ 盾魂爆发 (冷却: 0回合)`;
+                addCombatLog(`🎭 【假面变身】变身为【护盾使者】！每3回合可激活盾魂爆发！`, 'important');
             }
             
             getEl('mask-choices-container').classList.add('hidden');
@@ -663,6 +685,34 @@ function setupCombatListeners() {
         if (player.type !== 'mage' || combatState.hasPlayerRolled) return;
         player.toggleMageForm();
         addCombatLog(`☯️ 你切换到了【${player.mageForm === 'light' ? '光形态' : '暗形态'}】。`);
+        updateCombatUI();
+    });
+
+    // Shield Bearer — 盾魂爆发 skill
+    getEl('shield-surge-btn').addEventListener('click', () => {
+        if (player.originalType !== 'shieldbearer') return;
+        if (combatState.shieldBearerSkillCooldown > 0) return;
+
+        // Cost: 15% of current HP (non-lethal — must leave at least 1 HP)
+        const cost = Math.max(1, Math.floor(player.currentHp * 0.15));
+        if (player.currentHp - cost < 1) {
+            addCombatLog(`💀 【盾魂爆发】生命值不足，无法激活技能！`, 'info');
+            return;
+        }
+        player.currentHp -= cost;
+
+        // Gain: 5% maxHP × 4 = 20% maxHP as shield
+        const shieldGained = Math.max(1, Math.floor(player.maxHp * 0.05) * 4);
+        player.shield = (player.shield || 0) + shieldGained;
+
+        // Set 3-turn cooldown
+        combatState.shieldBearerSkillCooldown = 3;
+        const surgeBtn = getEl('shield-surge-btn');
+        surgeBtn.disabled = true;
+        surgeBtn.classList.add('disabled');
+        surgeBtn.textContent = `🛡️ 盾魂爆发 (冷却: 3回合)`;
+
+        addCombatLog(`🛡️ 【盾魂爆发】你献出 ${cost} 点生命（当前HP 15%），凝聚出 ${shieldGained} 点铁壁护盾！（5%×4，冷却3回合）`, 'important');
         updateCombatUI();
     });
 
@@ -1252,6 +1302,20 @@ function setupCombatListeners() {
                 freezeMech.cooldown--;
                 if (freezeMech.cooldown === 0) {
                     addCombatLog(`❄️ 【寒冰之咬】冷却完毕，已准备好下一次冰封！`, 'info');
+                }
+            }
+
+            // Shield Bearer skill cooldown tick
+            if (player.originalType === 'shieldbearer' && combatState.shieldBearerSkillCooldown > 0) {
+                combatState.shieldBearerSkillCooldown--;
+                const surgeBtn = getEl('shield-surge-btn');
+                if (combatState.shieldBearerSkillCooldown === 0) {
+                    surgeBtn.disabled = false;
+                    surgeBtn.classList.remove('disabled');
+                    surgeBtn.textContent = `🛡️ 盾魂爆发 (冷却: 0回合)`;
+                    addCombatLog(`🛡️ 【盾魂爆发】冷却完毕！技能可用！`, 'info');
+                } else {
+                    surgeBtn.textContent = `🛡️ 盾魂爆发 (冷却: ${combatState.shieldBearerSkillCooldown}回合)`;
                 }
             }
 

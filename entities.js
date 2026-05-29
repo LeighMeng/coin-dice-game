@@ -26,11 +26,12 @@ export class Player {
     getDefaultName(type) {
         switch (type) {
             case 'dicemaster': return "骰子大师";
-            case 'knight': return "骑士";
+            case 'knight': return "圣殿骑士";
             case 'mage': return "光暗法师";
             case 'archer': return "风行弓箭手";
             case 'maskmaster': return "假面大师";
             case 'soulmage': return "灵魂法师";
+            case 'shieldbearer': return "护盾使者";
             case 'random': return "命运浪人";
             default: return "冒险者";
         }
@@ -66,6 +67,10 @@ export class Player {
             case 'soulmage':
                 this.maxHp = 11;
                 this.attack = 1;
+                break;
+            case 'shieldbearer':
+                this.maxHp = 25;
+                this.attack = 3;
                 break;
             case 'random':
             default:
