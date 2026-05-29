@@ -30,6 +30,7 @@ export class Player {
             case 'mage': return "光暗法师";
             case 'archer': return "风行弓箭手";
             case 'maskmaster': return "假面大师";
+            case 'soulmage': return "灵魂法师";
             case 'random': return "命运浪人";
             default: return "冒险者";
         }
@@ -61,6 +62,10 @@ export class Player {
             case 'maskmaster':
                 this.maxHp = 10;
                 this.attack = 3;
+                break;
+            case 'soulmage':
+                this.maxHp = 11;
+                this.attack = 1;
                 break;
             case 'random':
             default:

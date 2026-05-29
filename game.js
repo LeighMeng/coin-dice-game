@@ -873,6 +873,13 @@ function setupCombatListeners() {
                         addCombatLog(` 💥 拼点获胜！你对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
                         hitsDealt++;
 
+                        // 灵魂法师被动：攻击额外造成最大HP 5% 真实灵魂伤害（穿透护盾，不致死）
+                        if (player.type === 'soulmage' || player.originalType === 'soulmage') {
+                            const soulDmg = Math.max(1, Math.floor(player.maxHp * 0.05));
+                            enemy.currentHp = Math.max(1, enemy.currentHp - soulDmg);
+                            addCombatLog(`   👻 【灵魂侵蚀·主动】灵魂法师附加 ${soulDmg} 点灵魂伤害！（直接穿透护盾）`, 'damage-enemy');
+                        }
+
                         // Check thunderstorm bonus damage
                         if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
                             const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
@@ -1065,6 +1072,13 @@ function setupCombatListeners() {
                                 addCombatLog(`   💥 拼点获胜！凤凰对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点火焰伤害。`, 'damage-enemy');
                                 hitsDealt++;
 
+                                // 灵魂法师被动：凤凰AOE也附加最大HP 3% 真实灵魂伤害
+                                if (player.type === 'soulmage' || player.originalType === 'soulmage') {
+                                    const soulDmg = Math.max(1, Math.floor(player.maxHp * 0.03));
+                                    enemy.currentHp = Math.max(1, enemy.currentHp - soulDmg);
+                                    addCombatLog(`     👻 【灵魂侵蚀·凤凰】${s.name} 附带 ${soulDmg} 点灵魂伤害！（直接穿透护盾）`, 'damage-enemy');
+                                }
+
                                 // Check thunderstorm bonus damage
                                 if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
                                     const thunderDmg = activeEnvironmentalEvent.thunderBonusDamage;
@@ -1104,6 +1118,13 @@ function setupCombatListeners() {
                             } else {
                                  addCombatLog(`   💥 拼点获胜！${s.name} 对 ${enemy.name} 造成了 ${dmgResult.damageDealt} 点伤害。`, 'damage-enemy');
                                  hitsDealt++;
+
+                                 // 灵魂法师被动：召唤物额外造成最大HP 3% 真实灵魂伤害（穿透护盾，不致死）
+                                 if (player.type === 'soulmage' || player.originalType === 'soulmage') {
+                                     const soulDmg = Math.max(1, Math.floor(player.maxHp * 0.03));
+                                     enemy.currentHp = Math.max(1, enemy.currentHp - soulDmg);
+                                     addCombatLog(`     👻 【灵魂侵蚀·随从】${s.name} 附带 ${soulDmg} 点灵魂伤害！（直接穿透护盾）`, 'damage-enemy');
+                                 }
 
                                  // Check thunderstorm bonus damage
                                  if (activeEnvironmentalEvent && activeEnvironmentalEvent.id === 'thunderstorm') {
