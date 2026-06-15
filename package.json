@@ -1,6 +1,7 @@
 {
   "name": "coin-dice-game",
   "version": "1.0.0",
+  "type": "module",
   "description": "Coin & Dice: Path of Fate - A turn-based roguelike strategy web game",
   "main": "game.js",
   "scripts": {
